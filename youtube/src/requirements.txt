@@ -1,0 +1,3 @@
+flask
+requests
+ytmusicapi~=1.8.1

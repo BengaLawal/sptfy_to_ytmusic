@@ -1,0 +1,240 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Function and Api Stack for Spotify to YT Music
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 3008
+    Timeout: 30
+    Tracing: Active
+    Tags:
+      Application: SpotifyToYTMusic
+
+Parameters:
+  Env:
+    Type: String
+  UserPoolId:
+    Type: String
+    Description: The Cognito User Pool id
+  UserPoolClientId:
+    Type: String
+    Description: The Cognito User Pool Client ID
+  UsersPoolArn:
+    Type: String
+    Description: The Cognito User Pool arn
+  UserPoolAdminGroupName:
+    Type: String
+    Description: The Cognito User Pool Admin Group Name
+    Default: spotify-to-yt-music-admins
+  UsersTable:
+    Type: String
+    Description: The DynamoDB table name for users
+  UsersTableArn:
+    Type: String
+    Description: The DynamoDB table ARN for users
+
+
+Resources:
+  OnCognitoSignupPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref UsersFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !Ref UsersPoolArn
+
+  SpotifyToYtMusicApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Name: SpotifyToYtMusicApi
+      TracingEnabled: True
+      Tags:
+        Name: !Sub "${AWS::StackName}-API"
+        Stack: !Sub "${AWS::StackName}"
+      Auth:
+        DefaultAuthorizer: LambdaTokenAuthorizer
+        Authorizers:
+          LambdaTokenAuthorizer:
+            FunctionArn:
+              Fn::GetAtt:
+                - AuthorizerFunction
+                - Arn
+            Identity:
+              Headers:
+                - Authorization
+      AccessLogSetting:
+        DestinationArn:
+          Fn::GetAtt:
+            - AccessLogs
+            - Arn
+        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp",
+          "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod","routeKey":"$context.routeKey",
+          "status":"$context.status","protocol":"$context.protocol", "integrationStatus":
+          $context.integrationStatus, "integrationLatency": $context.integrationLatency,
+          "responseLength":"$context.responseLength" }'
+      MethodSettings:
+        - ResourcePath: /*
+          LoggingLevel: INFO
+          HttpMethod: '*'
+          DataTraceEnabled: true
+
+  ApiLoggingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+  ApiGatewayAccountLoggingSettings:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - ApiLoggingRole
+          - Arn
+
+  AccessLogs:
+    Type: AWS::Logs::LogGroup
+    DependsOn: ApiLoggingRole
+    Properties:
+      RetentionInDays: 30
+      LogGroupName:
+        Fn::Sub: /${AWS::StackName}/APIAccessLogs
+
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../users/src/api
+      Handler: authorizer.lambda_handler
+      Description: Handler for Lambda authorizer
+      Environment:
+        Variables:
+          USER_POOL_ID:
+            Ref: UserPoolId
+          APPLICATION_CLIENT_ID:
+            Ref: UserPoolClientId
+          ADMIN_GROUP_NAME:
+            Ref: UserPoolAdminGroupName
+      Tags:
+        Stack:
+          Fn::Sub: ${AWS::StackName}
+
+  UsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Handler for all users related operations
+      CodeUri: ../users/src/api
+      Handler: users.lambda_handler
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          USERS_TABLE_ARN: !Ref UsersTableArn
+          REGION: !Ref AWS::Region
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Tags:
+        Stack: !Sub ${AWS::StackName}
+      Events:
+        GetUsersEvent:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+        PutUserEvent:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+            RestApiId: !Ref SpotifyToYtMusicApi
+        UpdateUserEvent:
+          Type: Api
+          Properties:
+            Path: /users/{userid}
+            Method: put
+            RestApiId: !Ref SpotifyToYtMusicApi
+        GetUserEvent:
+          Type: Api
+          Properties:
+            Path: /users/{userid}
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+        DeleteUserEvent:
+          Type: Api
+          Properties:
+            Path: /users/{userid}
+            Method: delete
+            RestApiId: !Ref SpotifyToYtMusicApi
+        IsAdminEvent:
+          Type: Api
+          Properties:
+            Path: /users/{userid}/isAdmin
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+    Metadata:
+      SamResourceId: UsersFunction
+
+  UsersFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName:
+        !Sub /aws/lambda/${UsersFunction}
+
+  SpotifyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../spotify/src/api
+      Handler: login.lambda_handler
+      Events:
+        LoginSpotifyEvent: # Event for the login path
+          Type: Api
+          Properties:
+            Path: /login-spotify
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+        GetPlaylistsEvent: # Event for getting playlists & ids
+          Type: Api
+          Properties:
+            Path: /playlists
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+
+
+
+Outputs:
+  SpotifyToYtMusicApi:
+    Description: URL of the API Gateway
+    Value: !Sub "https://${SpotifyToYtMusicApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+#    Export:
+#      Name: !Sub "${AWS::StackName}-SpotifyToYtMusicApi"
+
+  SpotifyToYtMusicApiId:
+    Description: The ID of the API Gateway
+    Value: !Ref SpotifyToYtMusicApi
+#    Export:
+#      Name: !Sub "${AWS::StackName}-SpotifyToYtMusicApiId"
+
+  UsersFunctionArn:
+    Description: ARN of the Users Lambda function
+    Value: !GetAtt UsersFunction.Arn
+#    Export:
+#      Name: !Sub ${AWS::StackName}-UsersFunctionArn
+
+  SpotifyFunctionArn:
+    Description: ARN of the Spotify Lambda function
+    Value: !GetAtt SpotifyFunction.Arn
+#    Export:
+#      Name: !Sub ${AWS::StackName}-SpotifyFunctionArn

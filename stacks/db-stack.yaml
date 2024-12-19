@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Database Stack for Spotify to YT Music
+
+Parameters:
+  Env:
+    Type: String
+
+Resources:
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Env}-UsersTable"
+      AttributeDefinitions:
+        - AttributeName: userid
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: userid
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Application
+          Value: SpotifyToYTMusic
+        - Key: Environment
+          Value: !Ref Env
+
+Outputs:
+  UsersTableName:
+    Description: Name of the DynamoDB Users table
+    Value: !Ref UsersTable
+#    Export:
+#      Name: !Sub ${AWS::StackName}-UsersTableName
+
+  UsersTableArn:
+    Description: ARN of the DynamoDB Users table
+    Value: !GetAtt UsersTable.Arn
+#    Export:
+#      Name: !Sub ${AWS::StackName}-UsersTableArn

@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Authentication Stack for Spotify to YT Music
+
+Parameters:
+  Env:
+    Type: String
+  UserPoolAdminGroupName:
+    Type: String
+#  UsersFunction:
+#    Type: String
+#  UsersFunctionArn:
+#    Type: String
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${Env}-User Pool"
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+      UsernameAttributes:
+        - email
+      UserPoolTags:
+        Key: Name
+        Value: !Sub "${Env} User Pool"
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${Env}User PoolClient"
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      RefreshTokenValidity: 30
+      UserPoolId: !Ref UserPool
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+      CallbackURLs:
+        - http://localhost
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref UserPoolClient
+      UserPoolId: !Ref UserPool
+
+  ApiAdministratorsUserPoolGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      Description: User group for API Administrators
+      GroupName: !Ref UserPoolAdminGroupName
+      Precedence: 0
+      UserPoolId: !Ref UserPool
+
+Outputs:
+  UserPoolId:
+    Description: ID of the Cognito User Pool
+    Value: !Ref UserPool
+#    Export:
+#      Name: !Sub "${AWS::StackName}-UserPoolId"
+
+  UserPoolClientId:
+    Description: ID of the Cognito User Pool Client
+    Value: !Ref UserPoolClient
+#    Export:
+#      Name: !Sub "${AWS::StackName}-UserPoolClientId"
+
+  UserPoolARN:
+    Description: ARN of the Cognito User Pool
+    Value: !GetAtt UserPool.Arn
+#    Export:
+#      Name: !Sub "${AWS::StackName}-UserPoolArn"
+
+  UserPoolAdminGroupName:
+    Description: Name of the Cognito User Pool Admin Group
+    Value: !Ref UserPoolAdminGroupName
+#    Export:
+#      Name: !Sub "${AWS::StackName}-UserPoolAdminGroupName"
+
+  CognitoLoginURL:
+    Description: Cognito User Pool Application Client Hosted Login UI URL
+    Value:
+      Fn::Sub: "https://${UserPoolClient}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&redirect_uri=http://localhost"
+#    Export:
+#      Name: !Sub "${AWS::StackName}-CognitoLoginURL"
+
+  CognitoAuthCommand:
+    Description: AWS CLI command for Amazon Cognito User Pool authentication
+    Value:
+      Fn::Sub: "aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id
+        ${UserPoolClient} --auth-parameters USERNAME=<user@example.com>,PASSWORD=<password>
+        --query 'AuthenticationResult.IdToken' --output text"
+#    Export:
+#      Name: !Sub "${AWS::StackName}-CognitoAuthCommand"
+

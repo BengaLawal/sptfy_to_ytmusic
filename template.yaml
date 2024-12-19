@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Template for spotify_to_ytmusic - 
+  Manages authentication, database, API, and function resources
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 3008
+    Timeout: 30
+    Tracing: Active
+    Tags:
+      Application: SpotifyToYTMusic
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+    Description: Environment name for resource isolation
+    AllowedValues:
+      - dev
+      - test
+      - staging
+      - prod
+    ConstraintDescription: "Must be one of: dev, test, staging, prod"
+
+  UserPoolAdminGroupName:
+    Description: User pool group name for API administrators
+    Type: String
+    Default: apiAdmins
+
+Resources:
+  AuthStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./stacks/auth-stack.yaml
+      Parameters:
+        Env: !Ref Env
+        UserPoolAdminGroupName: !Ref UserPoolAdminGroupName
+
+  DBStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./stacks/db-stack.yaml
+      Parameters:
+        Env: !Ref Env
+
+  FunctionApiStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./stacks/function-api-stack.yaml
+      Parameters:
+        Env: !Ref Env
+#        UserPoolId:Fn::ImportValue: !Sub '${AuthStack}-UserPoolId'
+#        UserPoolClientId:Fn::ImportValue: !Sub '${AuthStack}-UserPoolClientId'
+#        UsersPoolArn:Fn::ImportValue: !Sub "${AuthStack}-UserPoolArn"
+#        UserPoolAdminGroupName:Fn::ImportValue: !Sub '${AuthStack}-UserPoolAdminGroupName'
+#        UsersTable:Fn::ImportValue: !Sub '${DBStack}-UsersTableName'
+#        UsersTableArn:Fn::ImportValue: !Sub '${DBStack}-UsersTableArn'
+        UserPoolId: !Sub "${AuthStack}.Outputs.UserPoolId"
+        UserPoolClientId: !Sub "${AuthStack}.Outputs.UserPoolClientId"
+        UsersPoolArn: !Sub "${AuthStack}.Outputs.UserPoolArn"
+        UserPoolAdminGroupName: !Sub "${AuthStack}.Outputs.UserPoolAdminGroupName"
+        UsersTable: !Sub "${DBStack}.Outputs.UsersTableName"
+        UsersTableArn: !Sub "${DBStack}.Outputs.UsersTableArn"
+#    DependsOn:
+#     - AuthStack
+#     - DBStack
+
+Outputs:
+  AuthStackRef:
+    Description: Reference to the Authentication Stack
+    Value: !Ref AuthStack
+    Export:
+      Name: !Sub ${AWS::StackName}-AuthStack
+
+  DBStackRef:
+    Description: Reference to the Database Stack
+    Value: !Ref DBStack
+    Export:
+      Name: !Sub ${AWS::StackName}-DBStack
+
+  FunctionStackRef:
+    Description: Reference to the Function Stack
+    Value: !Ref FunctionApiStack
+    Export:
+      Name: !Sub ${AWS::StackName}-FunctionStack
