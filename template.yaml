@@ -37,6 +37,7 @@ Resources:
       Parameters:
         Env: !Ref Env
         UserPoolAdminGroupName: !Ref UserPoolAdminGroupName
+#        UsersFunctionArn: !GetAtt FunctionApiStack.Outputs.UsersFunctionArn
 
   DBStack:
     Type: AWS::Serverless::Application
@@ -51,21 +52,12 @@ Resources:
       Location: ./stacks/function-api-stack.yaml
       Parameters:
         Env: !Ref Env
-#        UserPoolId:Fn::ImportValue: !Sub '${AuthStack}-UserPoolId'
-#        UserPoolClientId:Fn::ImportValue: !Sub '${AuthStack}-UserPoolClientId'
-#        UsersPoolArn:Fn::ImportValue: !Sub "${AuthStack}-UserPoolArn"
-#        UserPoolAdminGroupName:Fn::ImportValue: !Sub '${AuthStack}-UserPoolAdminGroupName'
-#        UsersTable:Fn::ImportValue: !Sub '${DBStack}-UsersTableName'
-#        UsersTableArn:Fn::ImportValue: !Sub '${DBStack}-UsersTableArn'
         UserPoolId: !GetAtt  AuthStack.Outputs.UserPoolId
         UserPoolClientId: !GetAtt  AuthStack.Outputs.UserPoolClientId
         UsersPoolArn: !GetAtt AuthStack.Outputs.UserPoolArn
         UserPoolAdminGroupName: !GetAtt AuthStack.Outputs.UserPoolAdminGroupName
         UsersTable: !GetAtt DBStack.Outputs.UsersTableName
         UsersTableArn: !GetAtt  DBStack.Outputs.UsersTableArn
-#    DependsOn:
-#     - AuthStack
-#     - DBStack
 
 Outputs:
   AuthStackRef:
