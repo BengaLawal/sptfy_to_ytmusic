@@ -158,7 +158,7 @@ class AuthPolicy(object):
     allowMethods = []
     denyMethods = []
 
-    restApiId = "asgt8dbww4"
+    restApiId = "1c99dvz6y4"
     """ Replace the placeholder value with a default API Gateway API id to be used in the policy. 
     Beware of using '*' since it will not simply mean any API Gateway API id, because stars will greedily expand over '/' or other separators. 
     See https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_resource.html for more details. """

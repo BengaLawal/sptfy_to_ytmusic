@@ -57,12 +57,12 @@ Resources:
 #        UserPoolAdminGroupName:Fn::ImportValue: !Sub '${AuthStack}-UserPoolAdminGroupName'
 #        UsersTable:Fn::ImportValue: !Sub '${DBStack}-UsersTableName'
 #        UsersTableArn:Fn::ImportValue: !Sub '${DBStack}-UsersTableArn'
-        UserPoolId: !Sub "${AuthStack}.Outputs.UserPoolId"
-        UserPoolClientId: !Sub "${AuthStack}.Outputs.UserPoolClientId"
-        UsersPoolArn: !Sub "${AuthStack}.Outputs.UserPoolArn"
-        UserPoolAdminGroupName: !Sub "${AuthStack}.Outputs.UserPoolAdminGroupName"
-        UsersTable: !Sub "${DBStack}.Outputs.UsersTableName"
-        UsersTableArn: !Sub "${DBStack}.Outputs.UsersTableArn"
+        UserPoolId: !GetAtt  AuthStack.Outputs.UserPoolId
+        UserPoolClientId: !GetAtt  AuthStack.Outputs.UserPoolClientId
+        UsersPoolArn: !GetAtt AuthStack.Outputs.UserPoolArn
+        UserPoolAdminGroupName: !GetAtt AuthStack.Outputs.UserPoolAdminGroupName
+        UsersTable: !GetAtt DBStack.Outputs.UsersTableName
+        UsersTableArn: !GetAtt  DBStack.Outputs.UsersTableArn
 #    DependsOn:
 #     - AuthStack
 #     - DBStack

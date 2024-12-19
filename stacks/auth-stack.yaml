@@ -47,6 +47,8 @@ Resources:
       GenerateSecret: false
       PreventUserExistenceErrors: ENABLED
       RefreshTokenValidity: 30
+      SupportedIdentityProviders:
+        - COGNITO
       UserPoolId: !Ref UserPool
       AllowedOAuthFlowsUserPoolClient: true
       AllowedOAuthFlows:
@@ -84,7 +86,7 @@ Outputs:
 #    Export:
 #      Name: !Sub "${AWS::StackName}-UserPoolClientId"
 
-  UserPoolARN:
+  UserPoolArn:
     Description: ARN of the Cognito User Pool
     Value: !GetAtt UserPool.Arn
 #    Export:
