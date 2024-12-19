@@ -177,7 +177,6 @@ Resources:
             Method: delete
             RestApiId: !Ref SpotifyToYtMusicApi
 
-
   UsersFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Retain
@@ -190,7 +189,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../spotify/src/api
-      Handler: login.lambda_handler
+      Handler: spotify.lambda_handler
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         LoginSpotifyEvent: # Event for the login path
           Type: Api

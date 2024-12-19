@@ -65,7 +65,7 @@ operations = {
     'GET /playlists': lambda event: get_playlists(),
 }
 
-# print(get_playlists())
+print(get_playlists())
 
 def lambda_handler(event, context):
     headers = {

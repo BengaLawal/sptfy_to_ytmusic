@@ -96,13 +96,9 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.PUT, f"/users/{principal_id}/*")
     policy.allow_method(HttpVerb.DELETE, f"/users/{principal_id}/*")
 
-    # # new lines added for new table, check back here
-    # policy.allow_method(HttpVerb.GET, f"/units/{principal_id}")
-    # policy.allow_method(HttpVerb.PUT, f"/units/{principal_id}")
-    # policy.allow_method(HttpVerb.DELETE, f"/units/{principal_id}")
-    # policy.allow_method(HttpVerb.GET, f"/units/{principal_id}/*")
-    # policy.allow_method(HttpVerb.PUT, f"/units/{principal_id}/*")
-    # policy.allow_method(HttpVerb.DELETE, f"/units/{principal_id}/*")
+    policy.allow_method(HttpVerb.GET, f"/login-spotify/{principal_id}")
+    policy.allow_method(HttpVerb.GET, f"/playlists/{principal_id}")
+
 
     # Look for admin group in Cognito groups
     # Assumption: admin group always has higher precedence
@@ -115,12 +111,9 @@ def lambda_handler(event, context):
         policy.allow_method(HttpVerb.POST, "users")
         policy.allow_method(HttpVerb.PUT, "users/*")
 
-        # policy.allow_method(HttpVerb.GET, "units")
-        # policy.allow_method(HttpVerb.GET, "units/*")
-        # policy.allow_method(HttpVerb.DELETE, "units")
-        # policy.allow_method(HttpVerb.DELETE, "units/*")
-        # policy.allow_method(HttpVerb.POST, "units")
-        # policy.allow_method(HttpVerb.PUT, "units/*")
+        policy.allow_method(HttpVerb.GET, "login-spotify")
+        policy.allow_method(HttpVerb.GET, "playlists")
+
 
     # Finally, build the policy
     auth_response = policy.build()
