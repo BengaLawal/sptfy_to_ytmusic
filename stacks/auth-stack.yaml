@@ -32,14 +32,14 @@ Resources:
         - email
       UserPoolTags:
         Key: Name
-        Value: !Sub "${Env} User Pool"
+        Value: !Sub "${Env} UserPool"
 #      LambdaConfig:
 #        PostConfirmation: !Ref UsersFunctionArn
 
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: !Sub "${Env}User PoolClient"
+      ClientName: !Sub "${Env}UserPoolClient"
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_USER_SRP_AUTH
@@ -77,33 +77,23 @@ Outputs:
   UserPoolId:
     Description: ID of the Cognito User Pool
     Value: !Ref UserPool
-#    Export:
-#      Name: !Sub "${AWS::StackName}-UserPoolId"
 
   UserPoolClientId:
     Description: ID of the Cognito User Pool Client
     Value: !Ref UserPoolClient
-#    Export:
-#      Name: !Sub "${AWS::StackName}-UserPoolClientId"
 
   UserPoolArn:
     Description: ARN of the Cognito User Pool
     Value: !GetAtt UserPool.Arn
-#    Export:
-#      Name: !Sub "${AWS::StackName}-UserPoolArn"
 
   UserPoolAdminGroupName:
     Description: Name of the Cognito User Pool Admin Group
     Value: !Ref UserPoolAdminGroupName
-#    Export:
-#      Name: !Sub "${AWS::StackName}-UserPoolAdminGroupName"
 
   CognitoLoginURL:
     Description: Cognito User Pool Application Client Hosted Login UI URL
     Value:
       Fn::Sub: "https://${UserPoolClient}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&redirect_uri=http://localhost"
-#    Export:
-#      Name: !Sub "${AWS::StackName}-CognitoLoginURL"
 
   CognitoAuthCommand:
     Description: AWS CLI command for Amazon Cognito User Pool authentication
@@ -111,6 +101,3 @@ Outputs:
       Fn::Sub: "aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id
         ${UserPoolClient} --auth-parameters USERNAME=<user@example.com>,PASSWORD=<password>
         --query 'AuthenticationResult.IdToken' --output text"
-#    Export:
-#      Name: !Sub "${AWS::StackName}-CognitoAuthCommand"
-

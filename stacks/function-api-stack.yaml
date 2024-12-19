@@ -47,7 +47,7 @@ Resources:
   SpotifyToYtMusicApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: prod
+      StageName: Prod
       Name: SpotifyToYtMusicApi
       TracingEnabled: True
       Tags:
@@ -176,14 +176,7 @@ Resources:
             Path: /users/{userid}
             Method: delete
             RestApiId: !Ref SpotifyToYtMusicApi
-        IsAdminEvent:
-          Type: Api
-          Properties:
-            Path: /users/{userid}/isAdmin
-            Method: get
-            RestApiId: !Ref SpotifyToYtMusicApi
-    Metadata:
-      SamResourceId: UsersFunction
+
 
   UsersFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -213,28 +206,19 @@ Resources:
             RestApiId: !Ref SpotifyToYtMusicApi
 
 
-
 Outputs:
   SpotifyToYtMusicApi:
     Description: URL of the API Gateway
     Value: !Sub "https://${SpotifyToYtMusicApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
-#    Export:
-#      Name: !Sub "${AWS::StackName}-SpotifyToYtMusicApi"
 
   SpotifyToYtMusicApiId:
     Description: The ID of the API Gateway
     Value: !Ref SpotifyToYtMusicApi
-#    Export:
-#      Name: !Sub "${AWS::StackName}-SpotifyToYtMusicApiId"
 
   UsersFunctionArn:
     Description: ARN of the Users Lambda function
     Value: !GetAtt UsersFunction.Arn
-#    Export:
-#      Name: !Sub ${AWS::StackName}-UsersFunctionArn
 
   SpotifyFunctionArn:
     Description: ARN of the Spotify Lambda function
     Value: !GetAtt SpotifyFunction.Arn
-#    Export:
-#      Name: !Sub ${AWS::StackName}-SpotifyFunctionArn
