@@ -84,7 +84,7 @@ Resources:
       LogoutURLs:
         - http://localhost:8888  # frontend URL
         - http://localhost
-      DefaultRedirectURI: http://localhost:8888
+      DefaultRedirectURI: http://localhost:8888/callback
 
   UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
@@ -104,7 +104,7 @@ Resources:
     Type: AWS::Cognito::IdentityPool
     Properties:
       IdentityPoolName: !Sub "${Env}-IdentityPool"
-      AllowUnauthenticatedIdentities: false
+      AllowUnauthenticatedIdentities: true
       CognitoIdentityProviders:
         - ClientId: !Ref UserPoolClient
           ProviderName: !GetAtt UserPool.ProviderName
@@ -131,13 +131,55 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              # cognito user pools
               - Effect: Allow
                 Action:
-                  - cognito-idp:SignUp
+                  - cognito-idp:ChangePassword
+                  - cognito-idp:UpdateUserAttributes
+                  - cognito-idp:GetUser
+                  - cognito-idp:DeleteUser
+                  - cognito-idp:GetUserAttributeVerificationCode
+                  - cognito-idp:VerifyUserAttribute
+                  - cognito-idp:SetUserSettings
                   - cognito-idp:ConfirmSignUp
+                  - cognito-idp:SignUp
                   - cognito-idp:InitiateAuth
                   - cognito-idp:RespondToAuthChallenge
                 Resource: !GetAtt UserPool.Arn
+
+  UnauthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': unauthenticated
+      Policies:
+        - PolicyName: UnauthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+                # Cognito Sync - for basic data synchronization
+              - Effect: Allow
+                Action:
+                  - cognito-sync:ListRecords
+                  - cognito-sync:GetIdentityPoolConfiguration
+                  - cognito-sync:GetBulkPublishDetails
+                Resource: !Sub 'arn:aws:cognito-sync:${AWS::Region}:${AWS::AccountId}:identitypool/${IdentityPool}/*'
+                # Cognito Identity - essential for getting credentials
+              - Effect: Allow
+                Action:
+                  - cognito-identity:GetCredentialsForIdentity
+                  - cognito-identity:GetId
+                Resource: !Sub 'arn:aws:cognito-identity:${AWS::Region}:${AWS::AccountId}:identitypool/${IdentityPool}'
 
   # Attach roles to the Identity Pool
   IdentityPoolRoleAttachment:
@@ -146,6 +188,7 @@ Resources:
       IdentityPoolId: !Ref IdentityPool
       Roles:
         authenticated: !GetAtt AuthenticatedRole.Arn
+        unauthenticated: !GetAtt UnauthenticatedRole.Arn
 
 Outputs:
   UserPoolId:
