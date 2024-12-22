@@ -151,4 +151,6 @@ pyvenv.cfg
 .venv
 pip-selfcheck.json
 
+aws-exports.jsx
+
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,venv,serverless,sam,sam+config
