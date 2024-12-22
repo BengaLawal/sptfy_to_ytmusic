@@ -30,6 +30,20 @@ Resources:
           Required: true
       UsernameAttributes:
         - email
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+
       UserPoolTags:
         Key: Name
         Value: !Sub "${Env} UserPool"
@@ -47,17 +61,30 @@ Resources:
       GenerateSecret: false
       PreventUserExistenceErrors: ENABLED
       RefreshTokenValidity: 30
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      TokenValidityUnits:
+        AccessToken: 'hours'
+        IdToken: 'hours'
+        RefreshToken: 'days'
       SupportedIdentityProviders:
         - COGNITO
       UserPoolId: !Ref UserPool
       AllowedOAuthFlowsUserPoolClient: true
       AllowedOAuthFlows:
         - code
+        - implicit
       AllowedOAuthScopes:
         - email
         - openid
+        - profile
       CallbackURLs:
+        - http://localhost:8888/callback  # frontend URL
         - http://localhost
+      LogoutURLs:
+        - http://localhost:8888  # frontend URL
+        - http://localhost
+      DefaultRedirectURI: http://localhost:8888
 
   UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
@@ -72,6 +99,53 @@ Resources:
       GroupName: !Ref UserPoolAdminGroupName
       Precedence: 0
       UserPoolId: !Ref UserPool
+
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub "${Env}-IdentityPool"
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+          ServerSideTokenCheck: true
+
+  # IAM roles for authenticated and unauthenticated users
+  AuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref IdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: AuthenticatedPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:SignUp
+                  - cognito-idp:ConfirmSignUp
+                  - cognito-idp:InitiateAuth
+                  - cognito-idp:RespondToAuthChallenge
+                Resource: !GetAtt UserPool.Arn
+
+  # Attach roles to the Identity Pool
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt AuthenticatedRole.Arn
 
 Outputs:
   UserPoolId:
@@ -101,3 +175,7 @@ Outputs:
       Fn::Sub: "aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id
         ${UserPoolClient} --auth-parameters USERNAME=<user@example.com>,PASSWORD=<password>
         --query 'AuthenticationResult.IdToken' --output text"
+
+  IdentityPoolId:
+    Description: ID of the Cognito Identity Pool
+    Value: !Ref IdentityPool
