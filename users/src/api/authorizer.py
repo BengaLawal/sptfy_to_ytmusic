@@ -61,8 +61,19 @@ def validate_token(token, region):
         print('Token is expired')
         return False
     # and the Audience  (use claims['client_id'] if verifying an access token)
-    if claims['aud'] != app_client_id:
-        print('Token was not issued for this audience')
+    token_use = claims.get('token_use')
+    if token_use == 'access':
+        # For access tokens, verify client_id
+        if claims.get('client_id') != app_client_id:
+            print('Access Token was not issued for this client')
+            return False
+    elif token_use == 'id':
+        # For ID tokens, verify aud
+        if claims.get('aud') != app_client_id:
+            print('ID Token was not issued for this audience')
+            return False
+    else:
+        print('Invalid token use claim')
         return False
     decoded_jwt = jwt.decode(token, key=keys[key_index], audience=app_client_id)
     return decoded_jwt
@@ -70,6 +81,22 @@ def validate_token(token, region):
 
 def lambda_handler(event, context):
     global admin_group_name
+
+    # Handle OPTIONS preflight request
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            'statusCode': 200,
+            'headers' : {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': "http://localhost:5173",  # Update for production
+                'Access-Control-Allow-Methods': 'OPTIONS, POST, GET, PUT, DELETE',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
+                'Access-Control-Expose-Headers': 'Authorization, X-Custom-Header',
+                'Access-Control-Allow-Credentials': 'true'
+            },
+            'body': ''
+        }
+
     tmp = event['methodArn'].split(':')
     api_gateway_arn_tmp = tmp[5].split('/')
     region = tmp[3]
@@ -88,6 +115,9 @@ def lambda_handler(event, context):
     # *** Section 2 : authorization rules
     # Allow all public resources/methods explicitly
 
+    # Allow OPTIONS for all routes (add this before your specific rules)
+    policy.allow_method(HttpVerb.OPTIONS, "*")
+
     # Add user specific resources/methods
     policy.allow_method(HttpVerb.GET, f"/users/{principal_id}")
     policy.allow_method(HttpVerb.PUT, f"/users/{principal_id}")
@@ -96,8 +126,11 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.PUT, f"/users/{principal_id}/*")
     policy.allow_method(HttpVerb.DELETE, f"/users/{principal_id}/*")
 
-    policy.allow_method(HttpVerb.GET, f"/login-spotify/{principal_id}")
-    policy.allow_method(HttpVerb.GET, f"/playlists/{principal_id}")
+    # policy.allow_method(HttpVerb.GET, f"/playlists/{principal_id}")
+    policy.allow_method(HttpVerb.GET, f"/login-spotify")
+    policy.allow_method(HttpVerb.GET, f"/playlists")
+    policy.allow_method(HttpVerb.POST, f"/spotify-callback")
+
 
 
     # Look for admin group in Cognito groups
@@ -113,7 +146,7 @@ def lambda_handler(event, context):
 
         policy.allow_method(HttpVerb.GET, "login-spotify")
         policy.allow_method(HttpVerb.GET, "playlists")
-
+        policy.allow_method(HttpVerb.POST, "spotify-callback")
 
     # Finally, build the policy
     auth_response = policy.build()

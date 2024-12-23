@@ -50,6 +50,12 @@ Resources:
       StageName: Prod
       Name: SpotifyToYtMusicApi
       TracingEnabled: True
+      Cors:
+        AllowMethods: "'OPTIONS, POST, GET, PUT, DELETE'"
+        AllowHeaders: "'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token'"
+        AllowOrigin: "'http://localhost:5173'"
+        AllowCredentials: "'true'"
+        MaxAge: "'3600'"
       Tags:
         Name: !Sub "${AWS::StackName}-API"
         Stack: !Sub "${AWS::StackName}"
@@ -202,18 +208,49 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:Spotify-*"
       Events:
-        LoginSpotifyEvent: # Event for the login path
+        Login: # Event for the login path
           Type: Api
           Properties:
             Path: /login-spotify
             Method: get
             RestApiId: !Ref SpotifyToYtMusicApi
-        GetPlaylistsEvent: # Event for getting playlists & ids
+        OptionsLogin:
+          Type: Api
+          Properties:
+            Path: /login-spotify
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
+        SpotifyCallback:  # Event for handling spotify callback
+          Type: Api
+          Properties:
+            Path: /spotify-callback
+            Method: post
+            RestApiId: !Ref SpotifyToYtMusicApi
+        OptionsSpotifyCallback:
+          Type: Api
+          Properties:
+            Path: /spotify-callback
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
+        GetPlaylists: # Event for getting playlists & ids
           Type: Api
           Properties:
             Path: /playlists
             Method: get
             RestApiId: !Ref SpotifyToYtMusicApi
+        OptionsPlaylists:
+          Type: Api
+          Properties:
+            Path: /playlists
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
+
 
 
 Outputs:
