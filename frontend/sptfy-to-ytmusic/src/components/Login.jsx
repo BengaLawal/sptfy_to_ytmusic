@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { signIn } from 'aws-amplify/auth';
+import { Link, useNavigate } from 'react-router-dom';
+import Signup from "./Signup.jsx";
 
 const Login = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -25,53 +28,73 @@ const Login = () => {
                 throw new Error('Email and password are required');
             }
 
-            // New signIn syntax with named parameters
-            const { isSignedIn, nextStep } = await signIn({
-                username: formData.email,
+            const signInResponse = await signIn({
+                username: formData.email.toLowerCase().trim(),
                 password: formData.password
             });
+            console.log('Login successful:', signInResponse);
 
-            if (isSignedIn) {
-                console.log('Login successful');
-                // Handle successful login here
-            } else if (nextStep) {
+            // Check if additional verification is needed
+            if (signInResponse.isSignedIn) {
+                navigate('/dashboard');
+            } else if (signInResponse.nextStep) {
                 // Handle additional authentication steps if needed
-                console.log('Additional steps required:', nextStep);
+                switch (signInResponse.nextStep.signInStep) {
+                    case 'CONFIRM_SIGN_UP':
+                        navigate('/confirm-signup', {
+                            state: { email: formData.email }
+                        });
+                        break;
+                    case 'RESET_PASSWORD':
+                        navigate('/reset-password', {
+                            state: { email: formData.email }
+                        });
+                        break;
+                    default:
+                        console.log('Additional step required:', signInResponse.nextStep);
+                }
             }
+
+            return signInResponse;
         } catch (error) {
             setError(error.message);
         }
     };
 
     return (
-        <div>
-            <h2>Login</h2>
-            <form onSubmit={handleLogin}>
-                <label htmlFor="email">Email</label>
-                <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    autoComplete="email"
-                />
-                <label htmlFor="password">Password</label>
-                <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    autoComplete="current-password"
-                />
-                <button type="submit">Login</button>
+        <div className="auth-container">
+            <h2>Log In</h2>
+            <form onSubmit={handleLogin} className="auth-form">
+                <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                        autoComplete="email"
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="password">Password</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                        autoComplete="current-password"
+                    />
+                </div>
+                <button type="submit" className="submit-button">Log In</button>
             </form>
-            {error && <p>{error}</p>}
+            {error && <p className="error-message">{error}</p>}
+            <p className="auth-link">
+                Don't have an account? <Link to="/signup">Sign up</Link>
+            </p>
         </div>
     );
 };
