@@ -4,8 +4,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Signup from './components/Signup';
 import Login from "./components/Login.jsx";
 import ConfirmSignup from './components/ConfirmSignup';
-import Dashboard from './components/SptfyDashboard.jsx';
+import Dashboard from './components/Dashboard.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
+import SpotifyCallback from './components/SpotifyCallback';
 
 import { Amplify } from 'aws-amplify';
 
@@ -52,6 +53,7 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route path="/spotify-callback" element={<SpotifyCallback />} />
                 </Routes>
             </div>
         </Router>
