@@ -1,28 +1,47 @@
+/**
+ * ConfirmSignup Component
+ *
+ * This component handles the email verification step after user signup.
+ * It allows users to:
+ * - Enter and submit a verification code
+ * - Resend the verification code if needed
+ * - Navigate back to signup or login pages
+ */
 import React, { useState } from 'react';
 import { confirmSignUp, signIn, resendSignUpCode } from 'aws-amplify/auth';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 
 const ConfirmSignup = () => {
+    // Navigation and routing hooks
     const navigate = useNavigate();
     const location = useLocation();
-    const [code, setCode] = useState('');
-    const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [isResending, setIsResending] = useState(false);
 
+    // Component state
+    const [code, setCode] = useState(''); // Verification code input
+    const [error, setError] = useState(''); // Error message
+    const [isLoading, setIsLoading] = useState(false); // Loading state for verification
+    const [isResending, setIsResending] = useState(false); // Loading state for resend
+
+    // Get email and password from navigation state
     const email = location.state?.email;
     const password = location.state?.password;
 
+    /**
+     * Handles the verification code submission
+     * Confirms signup and attempts auto-login if password is available
+     */
     const handleConfirm = async (event) => {
         event.preventDefault();
         setError('');
         setIsLoading(true);
 
         try {
+            // Validate email presence
             if (!email) {
                 throw new Error('Email is required. Please go back to signup.');
             }
 
+            // Confirm signup with code
             const confirmResponse = await confirmSignUp({
                 username: email,
                 confirmationCode: code
@@ -30,7 +49,7 @@ const ConfirmSignup = () => {
 
             console.log('Confirmation successful:', confirmResponse);
 
-            // After successful confirmation, attempt to sign in
+            // Attempt auto-login if password is available
             if (password) {
                 try {
                     const signInResponse = await signIn({
@@ -47,7 +66,7 @@ const ConfirmSignup = () => {
                 }
             }
 
-            // If auto-login fails or no password available, redirect to login
+            // Fallback to login page
             navigate('/login');
         } catch (error) {
             console.error('Confirmation error:', error);
@@ -57,6 +76,9 @@ const ConfirmSignup = () => {
         }
     };
 
+    /**
+     * Handles resending of verification code
+     */
     const handleResendCode = async () => {
         setIsResending(true);
         setError('');
@@ -74,6 +96,10 @@ const ConfirmSignup = () => {
         }
     };
 
+    /**
+     * Handles verification code input changes
+     * Clears any existing error messages
+     */
     const handleCodeChange = (event) => {
         setCode(event.target.value);
         setError(''); // Clear error when user types
@@ -88,6 +114,7 @@ const ConfirmSignup = () => {
                 <strong>{email}</strong>
             </p>
 
+            {/* Verification form */}
             <form onSubmit={handleConfirm} className="auth-form">
                 <div className="form-group">
                     <label htmlFor="code">Verification Code</label>
@@ -104,6 +131,7 @@ const ConfirmSignup = () => {
                     />
                 </div>
 
+                {/* Submit button */}
                 <button
                     type="submit"
                     className="submit-button"
@@ -112,6 +140,7 @@ const ConfirmSignup = () => {
                     {isLoading ? 'Verifying...' : 'Verify Email'}
                 </button>
 
+                {/* Resend code button */}
                 <button
                     type="button"
                     onClick={handleResendCode}
@@ -122,12 +151,14 @@ const ConfirmSignup = () => {
                 </button>
             </form>
 
+            {/* Error message display */}
             {error && (
                 <p className="error-message">
                     {error}
                 </p>
             )}
 
+            {/* Navigation links */}
             <div className="auth-links">
                 <Link to="/signup" className="auth-link">
                     Return to Signup

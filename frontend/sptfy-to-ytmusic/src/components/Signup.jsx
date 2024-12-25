@@ -1,9 +1,21 @@
+/**
+ * Signup Component
+ *
+ * A React component that handles user registration using AWS Amplify Auth.
+ * Provides form validation, password requirements checking, and redirects after signup.
+ *
+ * @component
+ * @param {Object} props
+ * @param {Function} props.onSignupSuccess - Callback function called after successful signup
+ */
 import React, { useState } from 'react';
 import { signUp, signIn } from 'aws-amplify/auth';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Signup = ({ onSignupSuccess }) => {
     const navigate = useNavigate();
+
+    // Form state management
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -13,6 +25,12 @@ const Signup = ({ onSignupSuccess }) => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    /**
+     * Handles form input changes
+     * Updates form state and clears any existing errors
+     *
+     * @param {Object} event - The input change event
+     */
     const handleChange = (event) => {
         const { name, value } = event.target;
         setFormData(prevState => ({
@@ -23,16 +41,26 @@ const Signup = ({ onSignupSuccess }) => {
         setError('');
     };
 
+    /**
+     * Handles the signup form submission
+     * Validates inputs, checks password requirements, and calls AWS Cognito signup
+     *
+     * @param {Object} event - The form submission event
+     * @returns {Promise} Signup response from AWS Cognito
+     * @throws {Error} Validation or signup errors
+     */
     const handleSignup = async (event) => {
         event.preventDefault();
         setError('');
         setIsLoading(true);
 
         try {
+            // Validate required fields
             if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
                 throw new Error('All fields are required');
             }
 
+            // Validate password match
             if (formData.password !== formData.confirmPassword) {
                 throw new Error('Passwords do not match');
             }
@@ -49,7 +77,7 @@ const Signup = ({ onSignupSuccess }) => {
                 );
             }
 
-            // Sign up the user
+            // Sign up the user with AWS Cognito
             const signUpResponse = await signUp({
                 username: formData.email.toLowerCase().trim(),
                 password: formData.password,
@@ -65,6 +93,7 @@ const Signup = ({ onSignupSuccess }) => {
             });
             console.log('Sign up successful:', signUpResponse);
 
+            // Handle navigation based on signup response
             if (signUpResponse.nextStep.signInStep === 'CONFIRM_SIGN_UP') {
                 navigate('/login');
             } else {
@@ -85,6 +114,7 @@ const Signup = ({ onSignupSuccess }) => {
         }
     };
 
+    // Render signup form with validation and loading states
     return (
         <div className="auth-container">
             <h2>Sign Up</h2>

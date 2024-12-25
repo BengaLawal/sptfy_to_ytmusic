@@ -1,3 +1,10 @@
+/**
+ * Login Component
+ *
+ * A React component that handles user authentication using AWS Amplify.
+ * Provides a login form with email and password fields and handles various
+ * authentication scenarios including signup confirmation and password reset.
+ */
 import React, { useState } from 'react';
 import { signIn } from 'aws-amplify/auth';
 import { Link, useNavigate } from 'react-router-dom';
@@ -5,12 +12,17 @@ import Signup from "./Signup.jsx";
 
 const Login = () => {
     const navigate = useNavigate();
+    // State for form data and error handling
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     });
     const [error, setError] = useState('');
 
+    /**
+     * Handles input field changes and updates form state
+     * @param {Event} event - The input change event
+     */
     const handleChange = (event) => {
         const { name, value } = event.target;
         setFormData(prevState => ({
@@ -19,26 +31,35 @@ const Login = () => {
         }));
     };
 
+    /**
+     * Handles the login form submission
+     * Attempts to sign in the user using AWS Amplify auth
+     * Handles various authentication scenarios and redirects accordingly
+     * @param {Event} event - The form submission event
+     * @returns {Promise} SignIn response from AWS Amplify
+     */
     const handleLogin = async (event) => {
         event.preventDefault();
         setError('');
 
         try {
+            // Validate required fields
             if (!formData.email || !formData.password) {
                 throw new Error('Email and password are required');
             }
 
+            // Attempt sign in
             const signInResponse = await signIn({
                 username: formData.email.toLowerCase().trim(),
                 password: formData.password
             });
             console.log('Login successful:', signInResponse);
 
-            // Check if additional verification is needed
+            // Handle different authentication scenarios
             if (signInResponse.isSignedIn) {
                 navigate('/dashboard');
             } else if (signInResponse.nextStep) {
-                // Handle additional authentication steps if needed
+                // Handle additional authentication steps
                 switch (signInResponse.nextStep.signInStep) {
                     case 'CONFIRM_SIGN_UP':
                         navigate('/confirm-signup', {
@@ -61,6 +82,7 @@ const Login = () => {
         }
     };
 
+    // Render login form with email and password inputs
     return (
         <div className="auth-container">
             <h2>Log In</h2>
@@ -91,6 +113,7 @@ const Login = () => {
                 </div>
                 <button type="submit" className="submit-button">Log In</button>
             </form>
+            {/* Display error message if authentication fails */}
             {error && <p className="error-message">{error}</p>}
             <p className="auth-link">
                 Don't have an account? <Link to="/signup">Sign up</Link>
