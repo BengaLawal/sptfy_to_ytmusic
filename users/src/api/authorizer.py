@@ -126,10 +126,10 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.PUT, f"/users/{principal_id}/*")
     policy.allow_method(HttpVerb.DELETE, f"/users/{principal_id}/*")
 
-    # policy.allow_method(HttpVerb.GET, f"/playlists/{principal_id}")
-    policy.allow_method(HttpVerb.GET, f"/login-spotify")
-    policy.allow_method(HttpVerb.GET, f"/playlists")
-    policy.allow_method(HttpVerb.POST, f"/spotify-callback")
+    policy.allow_method(HttpVerb.GET, f"/spotify/isLoggedIn/{principal_id}")
+    policy.allow_method(HttpVerb.GET, f"/spotify/login/{principal_id}")
+    policy.allow_method(HttpVerb.GET, f"/spotify/playlists/{principal_id}")
+    policy.allow_method(HttpVerb.POST, f"/spotify/callback")
 
 
 
@@ -144,9 +144,10 @@ def lambda_handler(event, context):
         policy.allow_method(HttpVerb.POST, "users")
         policy.allow_method(HttpVerb.PUT, "users/*")
 
-        policy.allow_method(HttpVerb.GET, "login-spotify")
-        policy.allow_method(HttpVerb.GET, "playlists")
-        policy.allow_method(HttpVerb.POST, "spotify-callback")
+        policy.allow_method(HttpVerb.GET, "spotify/isLoggedIn/*")
+        policy.allow_method(HttpVerb.GET, "spotify/login/*")
+        policy.allow_method(HttpVerb.GET, "spotify/playlists/*")
+        policy.allow_method(HttpVerb.POST, "spotify/callback")
 
     # Finally, build the policy
     auth_response = policy.build()

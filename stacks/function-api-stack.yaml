@@ -208,16 +208,30 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:Spotify-*"
       Events:
+        IsLoggedIn: # Event for the isLoggedIn path
+          Type: Api
+          Properties:
+            Path: /spotify/isLoggedIn/{userId}
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+        OptionsIsLoggedIn:
+          Type: Api
+          Properties:
+            Path: /spotify/isLoggedIn/{userId}
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
         Login: # Event for the login path
           Type: Api
           Properties:
-            Path: /login-spotify
+            Path: /spotify/login/{userId}
             Method: get
             RestApiId: !Ref SpotifyToYtMusicApi
         OptionsLogin:
           Type: Api
           Properties:
-            Path: /login-spotify
+            Path: /spotify/login/{userId}
             Method: options
             RestApiId: !Ref SpotifyToYtMusicApi
             Auth:
@@ -225,13 +239,13 @@ Resources:
         SpotifyCallback:  # Event for handling spotify callback
           Type: Api
           Properties:
-            Path: /spotify-callback
+            Path: /spotify/callback
             Method: post
             RestApiId: !Ref SpotifyToYtMusicApi
         OptionsSpotifyCallback:
           Type: Api
           Properties:
-            Path: /spotify-callback
+            Path: /spotify/callback
             Method: options
             RestApiId: !Ref SpotifyToYtMusicApi
             Auth:
@@ -239,18 +253,25 @@ Resources:
         GetPlaylists: # Event for getting playlists & ids
           Type: Api
           Properties:
-            Path: /playlists
+            Path: /spotify/playlists/{userId}
             Method: get
             RestApiId: !Ref SpotifyToYtMusicApi
         OptionsPlaylists:
           Type: Api
           Properties:
-            Path: /playlists
+            Path: /spotify/playlists/{userId}
             Method: options
             RestApiId: !Ref SpotifyToYtMusicApi
             Auth:
               Authorizer: NONE
 
+#  SpotifyFunctionLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    DeletionPolicy: Retain
+#    UpdateReplacePolicy: Retain
+#    Properties:
+#      LogGroupName:
+#        !Sub /aws/lambda/${SpotifyFunction}
 
 
 Outputs:

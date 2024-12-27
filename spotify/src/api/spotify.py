@@ -1,55 +1,44 @@
 import json
-import os
-from datetime import datetime, timezone
-
 import boto3
 import spotipy
+from datetime import datetime, timezone
 from spotipy.oauth2 import SpotifyOAuth
 from botocore.exceptions import ClientError
+import logging
 
-# Add DynamoDB setup
-USERS_TABLE = os.environ['USERS_TABLE']
+# Configure logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+# Environment Variables
+# USERS_TABLE = os.environ['USERS_TABLE']
+USERS_TABLE = "dev-UsersTable"
+if not USERS_TABLE:
+    raise ValueError("Environment variable 'USERS_TABLE' is not set.")
+
+# DynamoDB setup
 dynamodb = boto3.resource('dynamodb')
 users_table = dynamodb.Table(USERS_TABLE)
 
+# Spotify configuration
 SCOPE = "user-read-email, user-read-private, playlist-read-private, playlist-read-collaborative, user-library-read"
-SPOTIPY_REDIRECT_URI="http://localhost:5173/spotify-callback"
+SPOTIPY_REDIRECT_URI="http://localhost:5173/spotify/callback"
 region_name = "eu-west-1"
 secret_name = "Spotify"
 
-def get_secret(region, secret_id):
-    # Create a Secrets Manager client
+def _get_secret():
+    """Retrieve secret from AWS Secrets Manager."""
     session = boto3.session.Session()
-    client = session.client(
-        service_name='secretsmanager',
-        region_name=region
-    )
+    client = session.client(service_name='secretsmanager', region_name=region_name)
     try:
-        get_secret_value_response = client.get_secret_value(
-            SecretId=secret_id
-        )
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        return json.loads(get_secret_value_response['SecretString'])
     except ClientError as e:
-        # For a list of exceptions thrown, see
-        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        logger.error(f"Error retrieving secret: {e}")
         raise e
-    return json.loads(get_secret_value_response['SecretString'])
 
-def get_spotify_service():
-    # Retrieve secrets
-    secrets = get_secret(region_name, secret_name)
-    spotipy_client_id=secrets["SPOTIPY_CLIENT_ID"]
-    spotipy_client_secret=secrets["SPOTIPY_CLIENT_SECRET"]
-
-    # Replace with your own Client ID, Client Secret, and Redirect URI
-    return spotipy.Spotify(auth_manager=SpotifyOAuth(client_id= spotipy_client_id,
-                                                     client_secret=spotipy_client_secret,
-                                                     redirect_uri=SPOTIPY_REDIRECT_URI,
-                                                     scope=SCOPE,
-                                                     open_browser=True,
-                                                     show_dialog=True,
-                                                     ))
-
-def store_spotify_token(user_id, token_info):
+def _store_spotify_token(userId, token_info):
+    """Store Spotify tokens in DynamoDB."""
     try:
         # Update user record with Spotify tokens
         update_expression = """
@@ -60,9 +49,8 @@ def store_spotify_token(user_id, token_info):
                 expires_at = :expires_at,
                 spotify_token_updated = :updated_at
             """
-
         users_table.update_item(
-            Key={'userid': user_id},
+            Key={'userid': userId},
             UpdateExpression=update_expression,
             ExpressionAttributeValues={
                 ':access_token': token_info['access_token'],
@@ -73,69 +61,252 @@ def store_spotify_token(user_id, token_info):
                 ':updated_at': int(datetime.now(timezone.utc).timestamp())
             }
         )
+        logger.info(f"Stored tokens for user {userId}")
         return True
     except Exception as e:
-        print(f"Error storing tokens: {str(e)}")
+        logger.error(f"Error storing tokens: {str(e)}")
         raise
 
-# Handle Spotify login
-def login_spotify():
-    # This will redirect the user to the Spotify login page
-    authorize_url = get_spotify_service().auth_manager.get_authorize_url()
+def _get_spotify_tokens(userId):
+    """Retrieve Spotify tokens from DynamoDB for the given user."""
+    try:
+        response = users_table.get_item(Key={'userid': userId},
+                                      ProjectionExpression='access_token, expires_at, refresh_token')
+        if 'Item' not in response:
+            return None
+        return response['Item']
+    except ClientError as e:
+        logger.error(f"Error accessing DynamoDB: {e.response['Error']['Message']}")
+        return None
+
+def _is_token_valid(userId):
+    """Check and return valid Spotify access token for the user."""
+    try:
+        tokens = _get_spotify_tokens(userId)
+        if not tokens:
+            logger.info(f"No tokens found for user {userId}")
+            return None
+
+        current_time = int(datetime.now().timestamp())
+        logger.info(f"Checking token validity for user {userId}")
+
+        # Check if access token exists and is still valid
+        if 'access_token' in tokens and 'expires_at' in tokens:
+            try:
+                expires_at = int(tokens['expires_at'])
+                if expires_at > current_time:
+                    logger.info(f"Valid token found for user {userId}")
+                    return tokens['access_token']
+                logger.info(f"Token expired for user {userId}")
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error converting expires_at to int: {str(e)}")
+                return None
+
+        # If token expired and refresh token exists, try to refresh
+        if 'refresh_token' in tokens:
+            logger.info(f"Attempting to refresh token for user {userId}")
+            return _refresh_spotify_token(userId, tokens['refresh_token'])
+
+        logger.info(f"No refresh token found for user {userId}")
+        return None
+
+    except Exception as e:
+        logger.error(f"Error validating token for user {userId}: {str(e)}")
+        return None
+
+def _refresh_spotify_token(userId, refresh_token):
+    """Refresh Spotify access token using the refresh token."""
+    try:
+        new_token_info = _get_spotify_service().auth_manager.refresh_access_token(refresh_token)
+        logger.info(f"new token info: {new_token_info}")
+
+        update_expression = 'SET access_token = :token, expires_at = :exp, spotify_token_updated = :updated'
+        expression_values = {
+            ':token': new_token_info['access_token'],
+            ':exp': int(new_token_info['expires_at']),
+            ':updated': int(datetime.now().timestamp())
+        }
+
+        # If a new refresh token is provided, update it
+        if 'refresh_token' in new_token_info:
+            update_expression += ', refresh_token = :refresh'
+            expression_values[':refresh'] = new_token_info['refresh_token']
+
+        users_table.update_item(
+            Key={'userid': userId},
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_values
+        )
+        logger.info(f"Refreshed token for user {userId}")
+        return new_token_info['access_token']
+    except ClientError as e:
+        logger.error(f"Error updating DynamoDB: {e.response['Error']['Message']}")
+        return None
+
+def _get_spotify_service():
+    """Get Spotify service instance with valid tokens."""
+    secrets = _get_secret()
+    return spotipy.Spotify(auth_manager=SpotifyOAuth(client_id= secrets["SPOTIPY_CLIENT_ID"],
+                                                     client_secret=secrets["SPOTIPY_CLIENT_SECRET"],
+                                                     redirect_uri=SPOTIPY_REDIRECT_URI,
+                                                     scope=SCOPE,
+                                                     # open_browser=True,
+                                                     show_dialog=True,
+                                                     ))
+
+# ---------------------------------------------------------------------------------------
+
+def handle_is_logged_in(event):
+    """Handle the request to check if the user is logged in."""
+    path_parameters = event.get('pathParameters', {})
+    userId = path_parameters.get('userId')
+    if not userId:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'message': 'userId is required in path parameters'
+            })
+        }
+
+    access_token = _is_token_valid(userId)
+    if access_token:
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'User is logged in',
+                'isLoggedIn': True,
+            })
+        }
+    else:
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'User is not logged in',
+                'isLoggedIn': False,
+            })
+        }
+
+def handle_login_spotify(event):
+    """ Handle Spotify login and redirect the user to the Spotify login page."""
+    path_parameters = event.get('pathParameters', {})
+    userId = path_parameters.get('userId')
+    if not userId:
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'message': 'userId is required in path parameters'
+            })
+        }
+
+    authorize_url = _get_spotify_service().auth_manager.get_authorize_url()
     return {
-        'message': 'Redirecting to Spotify for authentication.',
-        'url': authorize_url
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Redirecting to Spotify for authentication.',
+            'url': authorize_url
+        })
     }
 
 def handle_spotify_callback(event):
+    """Handle the callback from Spotify after user authentication."""
     try:
-        # Get the authorization code from request body
         body = json.loads(event.get('body', '{}'))
         code = body.get('code')
-        user_id = body.get('userId')
+        userId = body.get('userId')
 
         if not code:
-            return {
-                'error': 'Authorization code not found in request body'
-            }
+            return {'error': 'Authorization code not found in request body'}
 
         # Exchange the code for tokens using the auth manager
-        token_info = get_spotify_service().auth_manager.get_access_token(code)
-        store_spotify_token(user_id, token_info)
-
+        token_info = _get_spotify_service().auth_manager.get_access_token(code)
+        _store_spotify_token(userId, token_info)
         return {
-            'message': 'Authentication successful',
-            'access_token': token_info['access_token'],
-            'token_type': token_info['token_type'],
-            'expires_in': token_info['expires_in'],
-            'refresh_token': token_info['refresh_token'],
-            'expires_at': token_info['expires_at']
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'Authentication successful',
+                'isLoggedIn': True
+            })
         }
     except json.JSONDecodeError:
+        return {'error': 'Invalid JSON in request body'}
+    except Exception as e:
+        logger.error(f'Failed to exchange authorization code: {str(e)}')
+        return {'error': f'Failed to exchange authorization code: {str(e)}'}
+
+def handle_get_user_playlists(event):
+    try:
+        # Extract and validate user ID
+        path_parameters = event.get('pathParameters', {})
+        userId = path_parameters.get('userId')
+        if not userId:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'message': 'userId is required in path parameters'
+                })
+            }
+
+        # Validate token
+        access_token = _is_token_valid(userId)
+        if not access_token:
+            return {
+                'statusCode': 401,
+                'body': json.dumps({
+                    'message': 'Invalid or expired token'
+                })
+            }
+
+        # Fetch playlists
+        spotify_client = spotipy.Spotify(access_token)
+        playlists = spotify_client.current_user_playlists()
+
+        if not playlists or 'items' not in playlists:
+            return {
+                'statusCode': 404,
+                'body': json.dumps({
+                    'message': 'No playlists found'
+                })
+            }
+
         return {
-            'error': 'Invalid JSON in request body'
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'Successfully retrieved playlists',
+                'playlists': playlists['items']
+            })
+        }
+    except spotipy.SpotifyException as e:
+        logger.error(f"Spotify API error: {str(e)}")
+        return {
+            'statusCode': e.http_status if hasattr(e, 'http_status') else 500,
+            'body': json.dumps({
+                'message': 'Error accessing Spotify API',
+                'error': str(e)
+            })
         }
     except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
         return {
-            'error': f'Failed to exchange authorization code: {str(e)}'
+            'statusCode': 500,
+            'body': json.dumps({
+                'message': 'Internal server error',
+                'error': str(e)
+            })
         }
 
-# Get current user's playlists and ids
-def get_playlists():
-    results = get_spotify_service().current_user_playlists()
-    # results = get_spotify_service().current_user_playlists()
-    return { item['name']:item['id'] for item in results['items']}
-
-
+# -------------------------------------------------------------------------------------
 
 # Map routes to functions
 operations = {
-    'GET /login-spotify': lambda event: login_spotify(),
-    'POST /spotify-callback': lambda event: handle_spotify_callback(event),
-    'GET /playlists': lambda event: get_playlists(),
+    'GET /spotify/isLoggedIn/{userId}': lambda event: handle_is_logged_in(event),
+    'GET /spotify/login/{userId}': lambda event: handle_login_spotify(event),
+    'POST /spotify/callback': lambda event: handle_spotify_callback(event),
+    'GET /spotify/playlists/{userId}': lambda event: handle_get_user_playlists(event),
+
 }
 
 def lambda_handler(event, context):
+    """Main entry point for the AWS Lambda function."""
     headers = {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': "http://localhost:5173",  # Update for production
@@ -159,8 +330,8 @@ def lambda_handler(event, context):
         if route_key in operations:
             response_body = operations[route_key](event)
             return {
-                'statusCode': 200,
-                'body': json.dumps(response_body),
+                'statusCode': response_body['statusCode'],
+                'body': response_body['body'],
                 'headers': headers
             }
         else:
@@ -170,7 +341,7 @@ def lambda_handler(event, context):
                 'headers': headers
             }
     except Exception as err:
-        print(f"Error: {str(err)}")
+        logger.error(f"Error: {str(err)}")
         return {
             'statusCode': 500,
             'headers': headers,
