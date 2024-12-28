@@ -25,16 +25,55 @@ const getAuthHeader = async () => {
 };
 
 /**
+ * Checks if user is logged into Spotify
+ * * @returns {Promise<{statusCode: number, body: {message: string, isLoggedIn: boolean}}>} Response containing status code, message and login status
+ * * @throws {Error} If login status cannot be retrieved
+ */
+export const isLoggedIntoSpotify = async () => {
+    try {
+        // Get user and auth details in parallel
+        const [user, authHeader] = await Promise.all([
+            getCurrentUser(),
+            getAuthHeader()
+        ]);
+        // TODO: look into using JWT tokens that contain the user ID and access on backend
+        const response = await fetch(`${VITE_API_BASE_URL}/spotify/isLoggedIn/${user.userId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await data;
+    } catch (error) {
+        console.error('Error checking Spotify login status:', error);
+        throw error;
+    }
+};
+
+/**
  * Initiates Spotify login flow
  * @returns {Promise<string>} Spotify authorization URL
  * @throws {Error} If login URL cannot be retrieved
  */
 export const loginSpotify = async () => {
     try {
-        const response = await fetch(`${VITE_API_BASE_URL}/login-spotify`, {
+        // Get user and auth details in parallel
+        const [user, authHeader] = await Promise.all([
+            getCurrentUser(),
+            getAuthHeader()
+        ]);
+        const response = await fetch(`${VITE_API_BASE_URL}/spotify/login/${user.userId}`, {
             method: 'GET',
             headers: {
-                'Authorization': await getAuthHeader(),
+                'Authorization': authHeader,
                 'Content-Type': 'application/json'
             },
             credentials: 'include'
@@ -66,28 +105,21 @@ export const handleSpotifyCallback = async (code) => {
             getAuthHeader()
         ]);
 
-        const response = await fetch(`${VITE_API_BASE_URL}/spotify-callback`, {
+const response = await fetch(`${VITE_API_BASE_URL}/spotify/callback`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': authHeader,
+                'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: JSON.stringify({
-                code,
-                userId: user.userId
+                code: code,
+                userId: user.userId,
             }),
             credentials: 'include'
         });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            throw new Error(
-                errorData?.message ||
-                `Failed to complete Spotify authentication. Status: ${response.status}`
-            );
-        }
-        console.log('Response:', response)
-        return await response.json();
+        const data = await response.json();
+        console.log('Response:', data)
+        return await data;
     } catch (error) {
         console.error('Error handling Spotify callback:', error);
         throw error;
@@ -100,21 +132,27 @@ export const handleSpotifyCallback = async (code) => {
  * @throws {Error} If playlists cannot be retrieved
  */
 export const fetchPlaylists = async () => {
+    // Get user and auth details in parallel
+    const [user, authHeader] = await Promise.all([
+        getCurrentUser(),
+        getAuthHeader()
+    ]);
     try {
-        const response = await fetch(`${VITE_API_BASE_URL}/playlists`, {
+        const response = await fetch(`${VITE_API_BASE_URL}/spotify/playlists/${user.userId}`, {
             method: 'GET',
             headers: {
-                'Authorization': await getAuthHeader(),
+                'Authorization': authHeader,
                 'Content-Type': 'application/json'
             },
             credentials: 'include'
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        console.log('Response:', response)
-        return await response.json();
+        // if (!response.ok) {
+        //     throw new Error(`HTTP error! status: ${response.status}`);
+        // }
+        const data = await response.json();
+        console.log('Response:', data)
+        return await data;
     } catch (error) {
         console.error('Error fetching playlists:', error);
         throw error;

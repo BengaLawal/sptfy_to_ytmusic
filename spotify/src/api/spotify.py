@@ -150,8 +150,9 @@ def _get_spotify_service():
                                                      client_secret=secrets["SPOTIPY_CLIENT_SECRET"],
                                                      redirect_uri=SPOTIPY_REDIRECT_URI,
                                                      scope=SCOPE,
-                                                     # open_browser=True,
+                                                     open_browser=True,
                                                      show_dialog=True,
+                                                     cache_handler=spotipy.MemoryCacheHandler()
                                                      ))
 
 # ---------------------------------------------------------------------------------------
@@ -207,6 +208,7 @@ def handle_login_spotify(event):
         })
     }
 
+# TODO: Fix callback - current problem - Failed to exchange authorization code: error: invalid_grant, error_description: Invalid authorization code - but it works and stores the token.
 def handle_spotify_callback(event):
     """Handle the callback from Spotify after user authentication."""
     try:
@@ -218,7 +220,10 @@ def handle_spotify_callback(event):
             return {'error': 'Authorization code not found in request body'}
 
         # Exchange the code for tokens using the auth manager
-        token_info = _get_spotify_service().auth_manager.get_access_token(code)
+        auth_manager = _get_spotify_service().auth_manager
+        auth_manager.get_access_token(code=code, as_dict=False, check_cache=True)  # This caches the token
+        token_info = auth_manager.get_cached_token()  # Get the cached token info
+        logger.info(token_info)
         _store_spotify_token(userId, token_info)
         return {
             'statusCode': 200,
@@ -293,6 +298,25 @@ def handle_get_user_playlists(event):
                 'error': str(e)
             })
         }
+
+
+# dummy_event = {
+#     'pathParameters': {
+#         'userId': '32950464-7091-70a7-0119-5c35cb36052a'
+#     },
+#
+# }
+# print(handle_is_logged_in(dummy_event))
+
+# testEvent = {
+#     "body":json.dumps({
+#         "code": "AQAp41KELzLv_VU1w4beBbYqhzomYLIgtQ-HXbs9eMGdkLjFI1gMdP8eDWt0rQpCmffxzBG3YXMbB1oXV7Ygs0B7WoRDvm0p1b-EfvYpqU1I3EC83RcBA64BCkbhyPN6oimwXnzHGdsCF0PqU9Os4oN0m09u01lSLSbGwNhSz_4j0GgMLJ4sr6bZxjrzbNoJwaN2YYLy37yaTxCT2tWtO8tFJZwytMZGzber-gPMxPFFDoR35V35iJYsv_KKIGSdRMsRaDAXH3VKpB3zn_2FrgWPGgcPRU_4akwWjHzOTmAphxV82COA_7nHdqbRCj1OLOSh64M",
+#         "userId": "42457444-1001-7051-3dd4-ef84241184ea"
+#     }),
+# }
+# handle_spotify_callback(testEvent)
+
+# print(handle_get_user_playlists(dummy_event))
 
 # -------------------------------------------------------------------------------------
 

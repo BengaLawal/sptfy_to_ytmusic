@@ -6,7 +6,7 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {fetchUserAttributes, getCurrentUser, signOut} from 'aws-amplify/auth';
 import {useNavigate} from 'react-router-dom';
-import {loginSpotify, fetchPlaylists} from '../utils/spotifyApi';
+import {loginSpotify, fetchPlaylists, isLoggedIntoSpotify} from '../utils/spotifyApi';
 
 const Dashboard = () => {
     // Navigation hook
@@ -48,7 +48,7 @@ const Dashboard = () => {
         try {
             setLoading(true);
             const playlistsData = await fetchPlaylists();
-            setPlaylists(playlistsData);
+            setPlaylists(playlistsData.playlists);
         } catch (error) {
             setError('Error fetching playlists');
             console.error('Error fetching playlists:', error);
@@ -85,11 +85,21 @@ const Dashboard = () => {
 
     /**
      * Initiates Spotify OAuth flow
-     * Redirects user to Spotify login page
+     * Redirects user to Spotify login page if not already connected
      */
     const handleSpotifyAuth = async () => {
         try {
-            console.log('Connecting to Spotify...');
+            console.log('Checking Spotify connection...');
+            const response =  await isLoggedIntoSpotify();
+            console.log('Spotify connection response:', response)
+
+            if (response.isLoggedIn) {
+                console.log('Already connected to Spotify');
+                setSpotifyConnected(true);
+                await fetchPlaylistsData();
+                return;
+            }
+
             const authUrl = await loginSpotify();
             if (authUrl) {
                 window.location.href = authUrl;

@@ -8,7 +8,7 @@
  * @component
  * @returns {JSX.Element} Rendered component showing loading or error state
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { handleSpotifyCallback } from '../utils/spotifyApi.jsx';
 
@@ -20,6 +20,25 @@ const SpotifyCallback = () => {
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const navigateToDashboard = useCallback((state) => {
+        navigate('/dashboard', {
+            state: {
+                ...state,
+                timestamp: Date.now()
+            },
+            replace: true
+        });
+    }, [navigate]);
+
+    const processCallback = useCallback(async (code) => {
+        try {
+            await handleSpotifyCallback(code);
+            return { spotifyConnected: true };
+        } catch (error) {
+            throw new Error(`Failed to process Spotify callback: ${error.message}`);
+        }
+    }, []);
+
     useEffect(() => {
         /**
          * Processes the Spotify OAuth callback
@@ -27,12 +46,16 @@ const SpotifyCallback = () => {
          * - Handles the authorization with backend
          * - Navigates to dashboard with appropriate state
          */
+        let mounted = true;
+
         const handleCallback = async () => {
             try {
                 // Extract parameters from the OAuth callback URL
                 const params = new URLSearchParams(window.location.search);
                 const code = params.get('code');
                 const error = params.get('error');
+
+                console.log('Callback parameters:', { code, error });
 
                 // Handle potential authorization errors
                 if (error) {
@@ -43,46 +66,41 @@ const SpotifyCallback = () => {
                     throw new Error('No authorization code received');
                 }
 
-                // Process the authorization code with backend
-                await handleSpotifyCallback(code);
+                const result = await processCallback(code);
 
-                // On successful connection, redirect to dashboard
-                navigate('/dashboard', {
-                    state: {
-                        spotifyConnected: true,
-                        timestamp: Date.now() // Ensures state change detection
-                    },
-                    replace: true // Prevents back navigation to callback
-                });
+                if (mounted) {
+                    navigateToDashboard(result);
+                }
 
             } catch (error) {
                 // Handle any errors during the callback process
                 console.error('Spotify callback error:', error);
-                setError(error.message);
 
-                // Redirect to dashboard with error state after delay
-                setTimeout(() => {
-                    navigate('/dashboard', {
-                        state: {
-                            spotifyError: error.message,
-                            timestamp: Date.now()
-                        },
-                        replace: true
-                    });
-                }, 3000);
+                if (mounted) {
+                    setError(error.message);
+                    // Automatically redirect to dashboard after error
+                    setTimeout(() => {
+                        if (mounted) {
+                            navigateToDashboard({
+                                spotifyError: error.message
+                            });
+                        }
+                    }, 3000);
+                }
             } finally {
-                setIsLoading(false);
+                if (mounted) {
+                    setIsLoading(false);
+                }
             }
         };
 
         handleCallback();
 
-        // Cleanup state on component unmount
+        // Cleanup function
         return () => {
-            setIsLoading(false);
-            setError(null);
+            mounted = false;
         };
-    }, [navigate, location]);
+    }, [navigateToDashboard, processCallback]);
 
     // Show error state if connection failed
     if (error) {
@@ -100,8 +118,7 @@ const SpotifyCallback = () => {
         <div className="callback-loading" role="status">
             <h2>Connecting to Spotify...</h2>
             {isLoading && (
-                <div className="loading-spinner">
-                    {/* Add your spinner component or animation here */}
+                <div className="loading-spinner" aria-label="Loading">
                     <div className="spinner"></div>
                 </div>
             )}
@@ -109,4 +126,4 @@ const SpotifyCallback = () => {
     );
 };
 
-export default SpotifyCallback;
+export default React.memo(SpotifyCallback);

@@ -44,16 +44,7 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
-                    {/* Redirect root to dashboard if authenticated, otherwise to login */}
-                    <Route
-                        path="/"
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route path="/spotify-callback" element={<SpotifyCallback />} />
+                    <Route path="/spotify/callback" element={<SpotifyCallback />} />
                 </Routes>
             </div>
         </Router>
