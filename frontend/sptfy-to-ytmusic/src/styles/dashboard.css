@@ -62,7 +62,7 @@
 
 /* Spotify Embed Container */
 .spotify-embed-container {
-    margin-top: 20px;
+    margin-top: 30px;
 }
 
 /* No Playlist Selected Message */
@@ -92,4 +92,42 @@
 .transfer-section {
     margin-top: 20px;
     text-align: center;
+}
+
+/* Playlists Scrollable Container */
+.playlists-scrollable {
+    max-height: 400px; /* Set a fixed height */
+    overflow-y: scroll;  /* Enable vertical scrolling */
+    margin-top: 10px;  /* Space above the scrollable area */
+}
+
+/* Hide scrollbar for WebKit browsers (Chrome, Safari) */
+.playlists-scrollable::-webkit-scrollbar {
+    display: none; /* Hide the scrollbar */
+}
+
+/* Hide scrollbar for Firefox */
+.playlists-scrollable {
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
+}
+
+/* Transfer Button Styles */
+.transfer-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.transfer-button {
+    padding: 10px 20px;
+    background-color: #1db954; /* Spotify green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.transfer-button:hover {
+    background-color: #1aa34a; /* Darker green on hover */
 }

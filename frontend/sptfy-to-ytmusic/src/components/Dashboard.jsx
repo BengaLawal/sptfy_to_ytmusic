@@ -182,26 +182,27 @@ const Dashboard = () => {
                 </button>
             </div>
 
-            {/* Main content area */}
             <main className="dashboard-content">
                 <div className="dashboard-layout">
                     <div className="playlists-section">
                         <h3>Your Spotify Playlists</h3>
-                        <div className="playlists-grid">
-                        {playlists.map((playlist) => (
-                                <div
-                                    key={playlist.id}
-                                    className={`playlist-tile ${selectedPlaylists.includes(playlist.id) ? 'selected' : ''}`}
-                                    onClick={() => handlePlaylistSelect(playlist.id)}
-                                >
-                                    {playlist.images && playlist.images.length > 0 ? (
-                                        <img src={playlist.images[0].url} alt={playlist.name} className="playlist-image" />
-                                    ) : (
-                                        <div className="placeholder-image">No Image Available</div>
-                                    )}
-                                    <h4 className="playlist-name">{playlist.name}</h4>
-                                </div>
-                            ))}
+                        <div className="playlists-scrollable">
+                            <div className="playlists-grid">
+                                {playlists.map((playlist) => (
+                                    <div
+                                        key={playlist.id}
+                                        className={`playlist-tile ${selectedPlaylists.includes(playlist.id) ? 'selected' : ''}`}
+                                        onClick={() => handlePlaylistSelect(playlist.id)}
+                                    >
+                                        {playlist.images && playlist.images.length > 0 ? (
+                                            <img src={playlist.images[0].url} alt={playlist.name} className="playlist-image" />
+                                        ) : (
+                                            <div className="placeholder-image">No Image Available</div>
+                                        )}
+                                        <h4 className="playlist-name">{playlist.name}</h4>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -216,7 +217,7 @@ const Dashboard = () => {
                                     frameBorder="0"
                                     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                                     loading="lazy"
-                                    style={{borderRadius: "12px"}}
+                                    style={{ borderRadius: "12px" }}
                                     title="Spotify Playlist"
                                 ></iframe>
                                 <button onClick={() => setSelectedPlaylistId(null)} className="close-embed-button">
@@ -227,6 +228,16 @@ const Dashboard = () => {
                         {!selectedPlaylistId && <div className="no-playlist-selected">No playlist selected</div>}
                     </div>
                 </div>
+
+
+                {/* Transfer Button Section */}
+                {spotifyConnected && youtubeConnected && selectedPlaylists.length > 0 && (
+                    <div className="transfer-section">
+                        <button className="transfer-button">
+                            Transfer Playlist
+                        </button>
+                    </div>
+                )}
             </main>
         </div>
     );
