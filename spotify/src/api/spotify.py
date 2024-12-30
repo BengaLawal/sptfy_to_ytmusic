@@ -42,11 +42,11 @@ def _store_spotify_token(userId, token_info):
     try:
         # Update user record with Spotify tokens
         update_expression = """
-            SET access_token = :access_token,
-                refresh_token = :refresh_token,
-                expires_in = :expires_in,
-                token_type = :token_type,
-                expires_at = :expires_at,
+            SET spotify_access_token = :access_token,
+                spotify_refresh_token = :refresh_token,
+                spotify_expires_in = :expires_in,
+                spotify_token_type = :token_type,
+                spotify_expires_at = :expires_at,
                 spotify_token_updated = :updated_at
             """
         users_table.update_item(
@@ -71,7 +71,7 @@ def _get_spotify_tokens(userId):
     """Retrieve Spotify tokens from DynamoDB for the given user."""
     try:
         response = users_table.get_item(Key={'userid': userId},
-                                      ProjectionExpression='access_token, expires_at, refresh_token')
+                                      ProjectionExpression='spotify_access_token, spotify_expires_at, spotify_refresh_token')
         if 'Item' not in response:
             return None
         return response['Item']
@@ -91,21 +91,21 @@ def _is_token_valid(userId):
         logger.info(f"Checking token validity for user {userId}")
 
         # Check if access token exists and is still valid
-        if 'access_token' in tokens and 'expires_at' in tokens:
+        if 'spotify_access_token' in tokens and 'spotify_expires_at' in tokens:
             try:
-                expires_at = int(tokens['expires_at'])
+                expires_at = int(tokens['spotify_expires_at'])
                 if expires_at > current_time:
                     logger.info(f"Valid token found for user {userId}")
-                    return tokens['access_token']
+                    return tokens['spotify_access_token']
                 logger.info(f"Token expired for user {userId}")
             except (ValueError, TypeError) as e:
                 logger.error(f"Error converting expires_at to int: {str(e)}")
                 return None
 
         # If token expired and refresh token exists, try to refresh
-        if 'refresh_token' in tokens:
+        if 'spotify_refresh_token' in tokens:
             logger.info(f"Attempting to refresh token for user {userId}")
-            return _refresh_spotify_token(userId, tokens['refresh_token'])
+            return _refresh_spotify_token(userId, tokens['spotify_refresh_token'])
 
         logger.info(f"No refresh token found for user {userId}")
         return None
@@ -120,7 +120,7 @@ def _refresh_spotify_token(userId, refresh_token):
         new_token_info = _get_spotify_service().auth_manager.refresh_access_token(refresh_token)
         logger.info(f"new token info: {new_token_info}")
 
-        update_expression = 'SET access_token = :token, expires_at = :exp, spotify_token_updated = :updated'
+        update_expression = 'SET spotify_access_token = :token, spotify_expires_at = :exp, spotify_token_updated = :updated'
         expression_values = {
             ':token': new_token_info['access_token'],
             ':exp': int(new_token_info['expires_at']),
@@ -129,7 +129,7 @@ def _refresh_spotify_token(userId, refresh_token):
 
         # If a new refresh token is provided, update it
         if 'refresh_token' in new_token_info:
-            update_expression += ', refresh_token = :refresh'
+            update_expression += ', spotify_refresh_token = :refresh'
             expression_values[':refresh'] = new_token_info['refresh_token']
 
         users_table.update_item(
