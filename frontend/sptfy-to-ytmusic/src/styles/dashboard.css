@@ -1,0 +1,95 @@
+/* Dashboard Container */
+.dashboard-container {
+    padding: 20px;
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Playlists Section */
+.playlists-section {
+    margin-top: 20px;
+    flex: 1; /* Wider section for playlists */
+}
+
+/* Selected Playlist Section */
+.selected-playlist-section {
+    margin-left: 20px; /* Space between playlists and selected playlist */
+    flex: 1; /* Narrower section for selected playlist */
+}
+
+/* Grid Layout for Playlists */
+.playlists-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 3 tiles per row */
+    gap: 20px;
+}
+
+/* Individual Playlist Tile */
+.playlist-tile {
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.playlist-tile:hover {
+    transform: scale(1.05);
+}
+
+/* Playlist Image */
+.playlist-image {
+    width: 100%;
+    height: auto;
+}
+
+/* Playlist Name */
+.playlist-name {
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+/* Selected Playlist Style */
+.selected {
+    border-color: #1db954; /* Spotify green */
+    background-color: rgba(29, 185, 84, 0.1);
+}
+
+/* Spotify Embed Container */
+.spotify-embed-container {
+    margin-top: 20px;
+}
+
+/* No Playlist Selected Message */
+.no-playlist-selected {
+    color: #999;
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Error Message */
+.error-message {
+    color: #dc3545;
+    text-align: center;
+    margin-top: 1rem;
+}
+
+/* Service Buttons */
+.service-buttons {
+    margin: 20px 0;
+}
+
+.service-button {
+    margin: 0 10px;
+}
+
+/* Transfer Section */
+.transfer-section {
+    margin-top: 20px;
+    text-align: center;
+}

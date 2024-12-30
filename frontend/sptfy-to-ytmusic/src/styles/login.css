@@ -1,0 +1,177 @@
+/* Reset and base styles */
+#root {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+/* Layout containers */
+.auth-container {
+    background: white;
+    padding: 2.5rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    transition: transform 0.2s ease;
+}
+
+.auth-container:hover {
+    transform: translateY(-2px);
+}
+
+/* Typography */
+.auth-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 2rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+/* Form styles */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #444;
+    font-size: 0.95rem;
+}
+
+.form-group input {
+    padding: 0.875rem;
+    border: 1.5px solid #e1e1e1;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background-color: #fafafa;
+    color: #333;
+}
+
+.form-group input:hover {
+    border-color: #b3b3b3;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+    background-color: #fff;
+}
+
+/* Button styles */
+.submit-button {
+    background-color: #007bff;
+    color: white;
+    padding: 0.875rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.submit-button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:active {
+    transform: translateY(0);
+}
+
+.submit-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Error message */
+.error-message {
+    color: #dc3545;
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    padding: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-radius: 4px;
+}
+
+/* Auth link styles */
+.auth-link {
+    text-align: center;
+    margin-top: 1.75rem;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.auth-link a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.auth-link a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    #root {
+        padding: 1.5rem;
+    }
+
+    .auth-container {
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    #root {
+        padding: 1rem;
+    }
+
+    .auth-container {
+        margin: 1rem;
+        padding: 1.75rem 1.25rem;
+        border-radius: 8px;
+    }
+
+    .auth-container h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group input {
+        padding : 0.75rem;
+    }
+
+    .submit-button {
+        padding: 0.75rem;
+    }
+
+    .auth-link {
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+    }
+}

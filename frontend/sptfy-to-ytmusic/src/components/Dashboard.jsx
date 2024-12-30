@@ -7,6 +7,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {fetchUserAttributes, getCurrentUser, signOut} from 'aws-amplify/auth';
 import {useNavigate} from 'react-router-dom';
 import {loginSpotify, fetchPlaylists, isLoggedIntoSpotify} from '../utils/spotifyApi';
+import '../styles/dashboard.css';
 
 const Dashboard = () => {
     // Navigation hook
@@ -19,6 +20,8 @@ const Dashboard = () => {
     const [spotifyConnected, setSpotifyConnected] = useState(false);  // Spotify connection status
     const [youtubeConnected, setYoutubeConnected] = useState(false); // YouTube connection status
     const [playlists, setPlaylists] = useState([]);           // User's playlists
+    const [selectedPlaylists, setSelectedPlaylists] = useState([]); // Hold selected playlists
+    const [selectedPlaylistId, setSelectedPlaylistId] = useState(null); // Hold the selected playlist ID
     const [error, setError] = useState(null);                 // Error state
 
     /**
@@ -112,6 +115,19 @@ const Dashboard = () => {
         }
     };
 
+    const handlePlaylistSelect = (playlistId) => {
+        setSelectedPlaylists((prevSelected) => {
+            if (prevSelected.includes(playlistId)) {
+                setSelectedPlaylistId(null); // Deselect if already selected
+                return prevSelected.filter(id => id !== playlistId); // Deselect if already selected
+            } else {
+                setSelectedPlaylistId(playlistId); // Select the playlist and show embed
+                return [...prevSelected, playlistId]; // Select the playlist
+            }
+        });
+        console.log(selectedPlaylists)
+    };
+
     /**
      * Initiates YouTube Music OAuth flow
      * TODO: Implement actual YouTube Music authentication
@@ -140,7 +156,6 @@ const Dashboard = () => {
     // Main dashboard render
     return (
         <div className="dashboard-container">
-            {/* Navigation bar */}
             <nav className="dashboard-nav">
                 <div className="nav-content">
                     <div className="nav-left">
@@ -153,47 +168,65 @@ const Dashboard = () => {
                 </div>
             </nav>
 
-            {/* Service connection buttons */}
             <div className="service-buttons">
-                <button
-                    onClick={handleSpotifyAuth}
-                    className={`service-button spotify-button ${spotifyConnected ? 'connected' : ''}`}
-                    disabled={spotifyConnected}
-                >
+                <button onClick={handleSpotifyAuth}
+                        className={`service-button spotify-button ${spotifyConnected ? 'connected' : ''}`}
+                        disabled={spotifyConnected}>
                     {spotifyConnected ? 'Connected to Spotify' : 'Connect Spotify'}
                 </button>
 
-                <button
-                    onClick={handleYouTubeAuth}
-                    className={`service-button youtube-button ${youtubeConnected ? 'connected' : ''}`}
-                    disabled={youtubeConnected}
-                >
+                <button onClick={handleYouTubeAuth}
+                        className={`service-button youtube-button ${youtubeConnected ? 'connected' : ''}`}
+                        disabled={youtubeConnected}>
                     {youtubeConnected ? 'Connected to YouTube Music' : 'Connect YouTube Music'}
                 </button>
             </div>
 
             {/* Main content area */}
             <main className="dashboard-content">
-                {/* Transfer section - shown when both services are connected */}
-                {spotifyConnected && youtubeConnected && (
-                    <div className="transfer-section">
-                        <h3>Ready to Transfer</h3>
-                        <p>Both services are connected. You can now transfer your playlists.</p>
-                        {/* Add transfer functionality here */}
-                    </div>
-                )}
-
-                {/* Playlists section - shown when playlists are available */}
-                {playlists.length > 0 && (
+                <div className="dashboard-layout">
                     <div className="playlists-section">
-                        <h3>Your Playlists</h3>
-                        <ul>
-                            {playlists.map((playlist) => (
-                                <li key={playlist.id}>{playlist.name}</li>
+                        <h3>Your Spotify Playlists</h3>
+                        <div className="playlists-grid">
+                        {playlists.map((playlist) => (
+                                <div
+                                    key={playlist.id}
+                                    className={`playlist-tile ${selectedPlaylists.includes(playlist.id) ? 'selected' : ''}`}
+                                    onClick={() => handlePlaylistSelect(playlist.id)}
+                                >
+                                    {playlist.images && playlist.images.length > 0 ? (
+                                        <img src={playlist.images[0].url} alt={playlist.name} className="playlist-image" />
+                                    ) : (
+                                        <div className="placeholder-image">No Image Available</div>
+                                    )}
+                                    <h4 className="playlist-name">{playlist.name}</h4>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     </div>
-                )}
+
+                    <div className="selected-playlist-section">
+                        <h3>Selected Playlist</h3>
+                        {selectedPlaylistId && (
+                            <div className="spotify-embed-container">
+                                <iframe
+                                    src={`https://open.spotify.com/embed/playlist/${selectedPlaylistId}?utm_source=generator`}
+                                    width="100%"
+                                    height="352"
+                                    frameBorder="0"
+                                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                    loading="lazy"
+                                    style={{borderRadius: "12px"}}
+                                    title="Spotify Playlist"
+                                ></iframe>
+                                <button onClick={() => setSelectedPlaylistId(null)} className="close-embed-button">
+                                    Close
+                                </button>
+                            </div>
+                        )}
+                        {!selectedPlaylistId && <div className="no-playlist-selected">No playlist selected</div>}
+                    </div>
+                </div>
             </main>
         </div>
     );
