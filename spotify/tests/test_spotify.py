@@ -19,7 +19,46 @@ def aws_credentials():
     os.environ["AWS_SESSION_TOKEN"] = "testing"
     os.environ["AWS_DEFAULT_REGION"] = "eu-west-1"
 
+def _sample_playlist_data():
+    """Helper method to create sample playlist data."""
+    return {
+        'collaborative': False,
+        'description': "",
+        'external_urls': {
+            'spotify': 'https://open.spotify.com/playlist/2Nyw64tkZwej3qSA6B3W8F'
+        },
+        'href': "https://api.spotify.com/v1/playlists/2Nyw64tkZwej3qSA6B3W8F",
+        'id': "2Nyw64tkZwej3qSA6B3W8F",
+        'images': [{
+            'url': 'https://example.com/image.jpg',
+            'height': 640,
+            'width': 640
+        }],
+        'name': "If this world were mine",
+        'owner': {
+            'display_name': 'G_Benga',
+            'external_urls': {
+                'spotify': 'https://open.spotify.com/user/vw3vdbtnoihkfle5w3f8zhe5n'
+            },
+            'href': 'https://api.spotify.com/v1/users/vw3vdbtnoihkfle5w3f8zhe5n',
+            'id': 'XXXXXXXXXXXXXXXXXXXXXXXXX',
+            'type': 'user'
+        },
+        'primary_color': None,
+        'public': True,
+        'snapshot_id': "AAAArBXSEQs9dfyKNlGGX2UQ5FiS6D6k",
+        'tracks': {
+            'href': 'https://api.spotify.com/v1/playlists/2Nyw64tkZwej3qSA6B3W8F/tracks',
+            'total': 25
+        },
+        'type': "playlist",
+        'uri': "spotify:playlist:2Nyw64tkZwej3qSA6B3W8F"
+
+    }
+
+
 class TestSpotifyHelpers(unittest.TestCase):
+
     """Test class for Spotify helper functions."""
 
     def setUp(self):
@@ -44,6 +83,34 @@ class TestSpotifyHelpers(unittest.TestCase):
         os.environ.pop("AWS_SECURITY_TOKEN", None)
         os.environ.pop("AWS_SESSION_TOKEN", None)
         os.environ.pop("AWS_DEFAULT_REGION", None)
+
+    def _create_token_data(self, expires_in_seconds=3600):
+        """Helper function to create token data."""
+        return {
+            'spotify_access_token': self.token_info['access_token'],
+            'spotify_refresh_token': self.token_info['refresh_token'],
+            'spotify_expires_at': self.current_time + expires_in_seconds,
+            'spotify_token_type': self.token_info['token_type']
+        }
+
+    def _mock_dynamodb_table(self):
+        """Helper function to create a mock DynamoDB table."""
+        dynamodb = boto3.resource('dynamodb', region_name=self.region_name)
+        table = dynamodb.create_table(
+            TableName='TestUsers',
+            KeySchema=[
+                {'AttributeName': 'userid', 'KeyType': 'HASH'}
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'userid', 'AttributeType': 'S'}
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 1,
+                'WriteCapacityUnits': 1
+            }
+        )
+        table.wait_until_exists()
+        return table
 
     @mock_aws
     def test_get_secret_success(self):
@@ -85,34 +152,6 @@ class TestSpotifyHelpers(unittest.TestCase):
 
         # Check that logging was invoked
         self.logger.error.assert_called_once()
-
-    def _create_token_data(self, expires_in_seconds=3600):
-        """Helper function to create token data."""
-        return {
-            'spotify_access_token': self.token_info['access_token'],
-            'spotify_refresh_token': self.token_info['refresh_token'],
-            'spotify_expires_at': self.current_time + expires_in_seconds,
-            'spotify_token_type': self.token_info['token_type']
-        }
-
-    def _mock_dynamodb_table(self):
-        """Helper function to create a mock DynamoDB table."""
-        dynamodb = boto3.resource('dynamodb', region_name=self.region_name)
-        table = dynamodb.create_table(
-            TableName='TestUsers',
-            KeySchema=[
-                {'AttributeName': 'userid', 'KeyType': 'HASH'}
-            ],
-            AttributeDefinitions=[
-                {'AttributeName': 'userid', 'AttributeType': 'S'}
-            ],
-            ProvisionedThroughput={
-                'ReadCapacityUnits': 1,
-                'WriteCapacityUnits': 1
-            }
-        )
-        table.wait_until_exists()
-        return table
 
     @mock_aws()
     def test_store_spotify_token_success(self):
@@ -398,44 +437,6 @@ class TestSpotifyHelpers(unittest.TestCase):
             # Verify logging
             self.logger.info.assert_any_call(f"new token info: {new_token_info}")
             self.logger.info.assert_any_call(f"Refreshed token for user {self.user_id}")
-
-
-def _sample_playlist_data():
-    """Helper method to create sample playlist data."""
-    return {
-        'collaborative': False,
-        'description': "",
-        'external_urls': {
-            'spotify': 'https://open.spotify.com/playlist/2Nyw64tkZwej3qSA6B3W8F'
-        },
-        'href': "https://api.spotify.com/v1/playlists/2Nyw64tkZwej3qSA6B3W8F",
-        'id': "2Nyw64tkZwej3qSA6B3W8F",
-        'images': [{
-            'url': 'https://example.com/image.jpg',
-            'height': 640,
-            'width': 640
-        }],
-        'name': "If this world were mine",
-        'owner': {
-            'display_name': 'G_Benga',
-            'external_urls': {
-                'spotify': 'https://open.spotify.com/user/vw3vdbtnoihkfle5w3f8zhe5n'
-            },
-            'href': 'https://api.spotify.com/v1/users/vw3vdbtnoihkfle5w3f8zhe5n',
-            'id': 'XXXXXXXXXXXXXXXXXXXXXXXXX',
-            'type': 'user'
-        },
-        'primary_color': None,
-        'public': True,
-        'snapshot_id': "AAAArBXSEQs9dfyKNlGGX2UQ5FiS6D6k",
-        'tracks': {
-            'href': 'https://api.spotify.com/v1/playlists/2Nyw64tkZwej3qSA6B3W8F/tracks',
-            'total': 25
-        },
-        'type': "playlist",
-        'uri': "spotify:playlist:2Nyw64tkZwej3qSA6B3W8F"
-
-    }
 
 
 class TestSpotifyMain(unittest.TestCase):
