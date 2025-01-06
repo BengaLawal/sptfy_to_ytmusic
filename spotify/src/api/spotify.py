@@ -40,6 +40,15 @@ def _get_secret():
 def _store_spotify_token(userId, token_info):
     """Store Spotify tokens in DynamoDB."""
     try:
+        # First check if user exists
+        response = users_table.get_item(
+            Key={'userid': userId}
+        )
+
+        if 'Item' not in response:
+            logger.error(f"User {userId} not found in database")
+            raise ValueError(f"User {userId} does not exist")
+
         # Update user record with Spotify tokens
         update_expression = """
             SET spotify_access_token = :access_token,
@@ -145,15 +154,87 @@ def _refresh_spotify_token(userId, refresh_token):
 
 def _get_spotify_service():
     """Get Spotify service instance with valid tokens."""
-    secrets = _get_secret()
-    return spotipy.Spotify(auth_manager=SpotifyOAuth(client_id= secrets["SPOTIPY_CLIENT_ID"],
-                                                     client_secret=secrets["SPOTIPY_CLIENT_SECRET"],
-                                                     redirect_uri=SPOTIPY_REDIRECT_URI,
-                                                     scope=SCOPE,
-                                                     open_browser=True,
-                                                     show_dialog=True,
-                                                     cache_handler=spotipy.MemoryCacheHandler()
-                                                     ))
+    try:
+        # Get secrets from AWS Secrets Manager
+        secrets = _get_secret()
+
+        # Validate required secrets exist
+        if not all(key in secrets for key in ["SPOTIPY_CLIENT_ID", "SPOTIPY_CLIENT_SECRET"]):
+            logger.error("Missing required Spotify credentials in secrets")
+            raise KeyError("Missing required Spotify credentials")
+
+        # Create OAuth manager
+        auth_manager = SpotifyOAuth(
+            client_id=secrets["SPOTIPY_CLIENT_ID"],
+            client_secret=secrets["SPOTIPY_CLIENT_SECRET"],
+            redirect_uri=SPOTIPY_REDIRECT_URI,
+            scope=SCOPE,
+            open_browser=True,
+            show_dialog=True,
+            cache_handler=spotipy.MemoryCacheHandler()
+        )
+
+        # Create and return Spotify client
+        return spotipy.Spotify(auth_manager=auth_manager)
+
+    except KeyError as e:
+        logger.error(f"Missing required secrets: {str(e)}")
+        raise
+
+    except Exception as e:
+        logger.error(f"Error creating Spotify service: {str(e)}")
+        raise
+
+def _exchange_code_for_token(code):
+    """Exchange the code for tokens using the auth manager"""
+    try:
+        auth_manager = _get_spotify_service().auth_manager
+        auth_manager.get_access_token(code=code, as_dict=False, check_cache=True)  # This caches the token
+        token_info = auth_manager.get_cached_token()  # Get the cached token info
+        logger.info(token_info)
+        return token_info
+    except spotipy.SpotifyOauthError as e:
+        logger.error(f"OAuth error during token exchange: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error during token exchange: {str(e)}")
+        return None
+
+def _get_playlists(access_token):
+    """    Fetch user's playlists from Spotify"""
+    try:
+        spotify_client = spotipy.Spotify(access_token)
+        # Fetch all playlists with pagination
+        playlists = []
+        offset = 0
+        limit = 50  # Spotify's maximum limit per request
+
+        while True:
+            response = spotify_client.current_user_playlists(limit=limit, offset=offset)
+
+            if not response or 'items' not in response:
+                logger.error("Invalid response format from Spotify API")
+                return None
+
+            playlists.extend(response['items'])
+
+            # Check if we've fetched all playlists
+            if len(response['items']) < limit or response['next'] is None:
+                break
+
+            offset += limit
+
+        logger.info(f"Successfully fetched {len(playlists)} playlists")
+        return {
+            'items': playlists,
+            'total': len(playlists)
+        }
+    except spotipy.SpotifyException as e:
+        logger.error(f"Spotify API error: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error fetching playlists: {str(e)}")
+        return None
 
 # ---------------------------------------------------------------------------------------
 
@@ -219,11 +300,7 @@ def handle_spotify_callback(event):
         if not code:
             return {'error': 'Authorization code not found in request body'}
 
-        # Exchange the code for tokens using the auth manager
-        auth_manager = _get_spotify_service().auth_manager
-        auth_manager.get_access_token(code=code, as_dict=False, check_cache=True)  # This caches the token
-        token_info = auth_manager.get_cached_token()  # Get the cached token info
-        logger.info(token_info)
+        token_info = _exchange_code_for_token(code)
         _store_spotify_token(userId, token_info)
         return {
             'statusCode': 200,
@@ -261,9 +338,7 @@ def handle_get_user_playlists(event):
                 })
             }
 
-        # Fetch playlists
-        spotify_client = spotipy.Spotify(access_token)
-        playlists = spotify_client.current_user_playlists()
+        playlists = _get_playlists(access_token)
 
         if not playlists or 'items' not in playlists:
             return {
@@ -298,7 +373,6 @@ def handle_get_user_playlists(event):
                 'error': str(e)
             })
         }
-
 
 # dummy_event = {
 #     'pathParameters': {
