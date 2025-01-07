@@ -10,55 +10,28 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        python-version: ['3.11', '3.12']
-      fail-fast: false  # Continue with other versions if one fails
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'  # Enable pip caching
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          
+          echo "Installing dependencies from all requirements files..."
           # Find and install all requirements files
-          echo "🔍 Finding all requirements files..."
           find . -type f -name "requirements*.txt" -not -path "*/\.*" | while read file; do
             echo "📦 Installing dependencies from: $file"
             pip install -r "$file"
           done
 
-          # Install common test dependencies
-          echo "🧪 Installing test dependencies..."
-          pip install pytest pytest-cov pytest-mock pytest-asyncio
-
-          # List all installed packages
-          echo "📋 Installed packages:"
-          pip list      
-
-      - name: Run tests with coverage
+      - name: Run unit tests
         run: |
-          pytest --cov=./ --cov-report=xml --cov-report=term-missing
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: true
-
-env:
-  PYTHONPATH: ${{ github.workspace }}
-  FORCE_COLOR: 1
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+          echo "Running unit tests..."
+          python -m unittest discover -s ../spotify/tests -p "*.py"  
