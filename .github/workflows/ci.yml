@@ -3,30 +3,91 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - $default-branch
+      - main
   pull_request:
     branches:
-      - $default-branch
+      - main
 
 jobs:
-  build:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+      fail-fast: false  # Continue with other versions if one fails
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'  # Enable pip caching
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          
+          # Find and install all requirements files
+          echo "🔍 Finding all requirements files..."
+          find . -type f -name "requirements*.txt" -not -path "*/\.*" | while read file; do
+            echo "📦 Installing dependencies from: $file"
+            pip install -r "$file"
+          done
+
+          # Install common test dependencies
+          echo "🧪 Installing test dependencies..."
+          pip install pytest pytest-cov pytest-mock pytest-asyncio
+
+          # List all installed packages
+          echo "📋 Installed packages:"
+          pip list      
+
+      - name: Run linting
+        run: |
+          pip install flake8 black isort
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          black . --check
+          isort . --check-only --profile black
+
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=./ --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
+
+  security:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.12'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install security tools
         run: |
-          # Find all requirements.txt files and install them
-          find . -name "requirements.txt" -exec pip install -r {} \;
+          python -m pip install --upgrade pip
+          pip install bandit safety
 
-      - name: Run all tests
+      - name: Run security checks
         run: |
-          pytest
+          bandit -r . -c pyproject.toml
+          safety check
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  FORCE_COLOR: 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
