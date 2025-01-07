@@ -12,6 +12,9 @@ jobs:
   test:
     runs-on: ubuntu-latest  # Use the latest Ubuntu runner
 
+    env:
+      AWS_DEFAULT_REGION: eu-west-1    # Add this environment variable
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
