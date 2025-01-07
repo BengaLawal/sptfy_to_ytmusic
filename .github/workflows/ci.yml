@@ -34,4 +34,4 @@ jobs:
       - name: Run unit tests
         run: |
           echo "Running unit tests..."
-          python -m unittest discover -s ../spotify/tests -p "*.py"  
+          python -m unittest discover -s spotify/tests -p "*.py"  
