@@ -131,7 +131,8 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.GET, f"/spotify/playlists/{principal_id}")
     policy.allow_method(HttpVerb.POST, f"/spotify/callback")
 
-
+    policy.allow_method(HttpVerb.GET, f"/ytmusic/login/{principal_id}")
+    policy.allow_method(HttpVerb.POST, f"/ytmusic/poll-token")
 
     # Look for admin group in Cognito groups
     # Assumption: admin group always has higher precedence
@@ -148,6 +149,10 @@ def lambda_handler(event, context):
         policy.allow_method(HttpVerb.GET, "spotify/login/*")
         policy.allow_method(HttpVerb.GET, "spotify/playlists/*")
         policy.allow_method(HttpVerb.POST, "spotify/callback")
+
+        policy.allow_method(HttpVerb.GET, f"/ytmusic/login/*")
+        policy.allow_method(HttpVerb.POST, f"/ytmusic/poll-token")
+
 
     # Finally, build the policy
     auth_response = policy.build()

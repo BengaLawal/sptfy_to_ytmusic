@@ -265,6 +265,75 @@ Resources:
             Auth:
               Authorizer: NONE
 
+  YtMusicFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../ytmusic/src/api
+      Handler: ytmusic.lambda_handler
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:YtMusic-*"
+      Events:
+#        IsLoggedIn: # Event for the isLoggedIn path
+#          Type: Api
+#          Properties:
+#            Path: /ytmusic/isLoggedIn/{userId}
+#            Method: get
+#            RestApiId: !Ref SpotifyToYtMusicApi
+#        OptionsIsLoggedIn:
+#          Type: Api
+#          Properties:
+#            Path: /ytmusic/isLoggedIn/{userId}
+#            Method: options
+#            RestApiId: !Ref SpotifyToYtMusicApi
+#            Auth:
+#              Authorizer: NONE
+        Login: # Event for the login path
+          Type: Api
+          Properties:
+            Path: /ytmusic/login/{userId}
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+        OptionsLogin:
+          Type: Api
+          Properties:
+            Path: /ytmusic/login/{userId}
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
+        YtMusicPoll: # Event for handling ytmusic poll token
+          Type: Api
+          Properties:
+            Path: /ytmusic/poll-token
+            Method: post
+            RestApiId: !Ref SpotifyToYtMusicApi
+        OptionsYtMusicPoll:
+          Type: Api
+          Properties:
+            Path: /ytmusic/poll-token
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
+
+
+  YtMusicFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName:
+        !Sub /aws/lambda/${YtMusicFunction}
+
 #  SpotifyFunctionLogGroup:
 #    Type: AWS::Logs::LogGroup
 #    DeletionPolicy: Retain
