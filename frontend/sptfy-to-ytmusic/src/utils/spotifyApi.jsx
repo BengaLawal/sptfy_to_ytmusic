@@ -105,25 +105,25 @@ export const handleSpotifyCallback = async (code) => {
             getAuthHeader()
         ]);
 
-const response = await fetch(`${VITE_API_BASE_URL}/spotify/callback`, {
-            method: 'POST',
-            headers: {
-                'Authorization': authHeader,
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: JSON.stringify({
-                code: code,
-                userId: user.userId,
-            }),
-            credentials: 'include'
-        });
-        const data = await response.json();
-        console.log('Response:', data)
-        return await data;
-    } catch (error) {
-        console.error('Error handling Spotify callback:', error);
-        throw error;
-    }
+        const response = await fetch(`${VITE_API_BASE_URL}/spotify/callback`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': authHeader,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        userId: user.userId,
+                    }),
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                console.log('Response:', data)
+                return await data;
+            } catch (error) {
+                console.error('Error handling Spotify callback:', error);
+                throw error;
+            }
 };
 
 /**

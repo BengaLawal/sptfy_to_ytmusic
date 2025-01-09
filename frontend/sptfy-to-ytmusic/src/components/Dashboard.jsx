@@ -7,6 +7,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {fetchUserAttributes, getCurrentUser, signOut} from 'aws-amplify/auth';
 import {useNavigate} from 'react-router-dom';
 import {loginSpotify, fetchPlaylists, isLoggedIntoSpotify} from '../utils/spotifyApi';
+import {loginYtmusic, pollInterval} from '../utils/ytmusicApi.jsx';
 import '../styles/dashboard.css';
 
 const Dashboard = () => {
@@ -133,13 +134,48 @@ const Dashboard = () => {
      * TODO: Implement actual YouTube Music authentication
      */
     const handleYouTubeAuth = async () => {
+        const MAX_RETRIES = 60;
+        setLoading(true)
         try {
             // Implement YouTube Music OAuth flow
             console.log('Connecting to YouTube Music...');
-            // After successful connection:
-            setYoutubeConnected(true);
+            const response = await loginYtmusic();
+
+            console.log('YouTube Music connection response:', response);
+            const { verification_url, device_code, interval } = response;
+
+            const newWindow = window.open(verification_url, '_blank');
+            if (!newWindow) {
+                throw new Error('Popup blocked. Please enable popups and try again.');
+            }
+
+            let tokenStatus = await pollInterval(device_code, interval);
+            let attempts = 0;
+
+            while (tokenStatus.status !== 'completed' && attempts < MAX_RETRIES) {
+                console.log('Polling for token status...');
+                await new Promise(resolve => setTimeout(resolve, interval * 1000));
+                tokenStatus = await pollInterval(device_code, interval);
+                attempts++
+            }
+
+
+            if (tokenStatus.status === 'completed') {
+                console.log('Token exchange completed successfully');
+                setYoutubeConnected(true);
+                window.location.href = '/dashboard';
+                // After successful connection:
+            }else if (tokenStatus.status === 'error') {
+                throw new Error(tokenStatus.message || 'Token exchange failed');
+            } else {
+                throw new Error('Polling timeout: Token exchange took too long');
+            }
+
         } catch (error) {
             console.error('YouTube Music authentication error:', error);
+            setYoutubeConnected(false);
+        } finally {
+            setLoading(false);
         }
     };
 
