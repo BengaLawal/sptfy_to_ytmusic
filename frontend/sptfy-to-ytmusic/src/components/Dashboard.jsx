@@ -58,6 +58,7 @@ const Dashboard = () => {
         try {
             setLoading(true);
             const playlistsData = await fetchSpotifyPlaylists();
+            console.log('Fetched playlists:', playlistsData);
             setPlaylists(playlistsData);
         } catch (error) {
             setError('Error fetching playlists');
@@ -112,22 +113,22 @@ const Dashboard = () => {
         }
     };
 
-    /**
-     * Handles playlist selection/deselection
-     * Updates selected playlists state and current view
-     * @param {string} playlistId - ID of the selected playlist
-     */
-    const handlePlaylistSelect = (playlistId) => {
-        setSelectedPlaylists((prevSelected) => {
-            if (prevSelected.includes(playlistId)) {
-                setSelectedPlaylistId(null);
-                return prevSelected.filter(id => id !== playlistId);
-            } else {
-                setSelectedPlaylistId(playlistId);
-                return [...prevSelected, playlistId];
-            }
+    const handlePlaylistView = (playlistId) => {
+        setSelectedPlaylistId(playlistId);
+    };
+
+
+    const handlePlaylistSelect = (playlistId, event) => {
+        setSelectedPlaylists(prevSelected => {
+            const newSelection = prevSelected.includes(playlistId)
+                ? prevSelected.filter(id => id !== playlistId)
+                : [...prevSelected, playlistId];
+
+            console.log('Selected playlists:', newSelection);
+            return newSelection;
         });
     };
+
     // Loading state render
     if (loading) {
         return <div className="loading-container">Loading...</div>;
@@ -177,10 +178,21 @@ const Dashboard = () => {
                                     <div
                                         key={playlist.id}
                                         className={`playlist-tile ${selectedPlaylists.includes(playlist.id) ? 'selected' : ''}`}
-                                        onClick={() => handlePlaylistSelect(playlist.id)}
+                                        onClick={() => handlePlaylistView(playlist.id)} // handle tile click
                                     >
+                                        <div className="playlist-select"
+                                             onClick={(e) => {
+                                                 e.stopPropagation() // prevent tile click
+                                             }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedPlaylists.includes(playlist.id)}
+                                                onChange={(e) => handlePlaylistSelect(playlist.id, e)}
+                                            />
+                                        </div>
                                         {playlist.images && playlist.images.length > 0 ? (
-                                            <img src={playlist.images[0].url} alt={playlist.name} className="playlist-image" />
+                                            <img src={playlist.images[0].url} alt={playlist.name}
+                                                 className="playlist-image"/>
                                         ) : (
                                             <div className="placeholder-image">No Image Available</div>
                                         )}

@@ -30,6 +30,7 @@
 
 /* Individual Playlist Tile */
 .playlist-tile {
+    position: relative;
     cursor: pointer;
     border: 1px solid #ccc;
     border-radius: 8px;
@@ -52,6 +53,29 @@
 .playlist-name {
     margin: 10px 0;
     font-size: 14px;
+}
+
+.playlist-select {
+    position: absolute;
+    top: 10px;
+    right: 10px; /* or left: 10px; if you prefer left positioning */
+    z-index: 2;
+}
+
+.playlist-select input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #1DB954; /* Spotify green for the checkbox */
+}
+
+.playlist-tile:hover .playlist-select input[type="checkbox"] {
+    opacity: 1;
+}
+
+/*playlist checkbox*/
+.playlist-select input[type="checkbox"]:checked {
+    opacity: 1;
 }
 
 /* Selected Playlist Style */
