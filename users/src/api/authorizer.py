@@ -131,6 +131,7 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.GET, f"/spotify/playlists/{principal_id}")
     policy.allow_method(HttpVerb.POST, f"/spotify/callback")
 
+    policy.allow_method(HttpVerb.GET, f"/ytmusic/isLoggedIn/{principal_id}")
     policy.allow_method(HttpVerb.GET, f"/ytmusic/login/{principal_id}")
     policy.allow_method(HttpVerb.POST, f"/ytmusic/poll-token")
 
@@ -150,6 +151,7 @@ def lambda_handler(event, context):
         policy.allow_method(HttpVerb.GET, "spotify/playlists/*")
         policy.allow_method(HttpVerb.POST, "spotify/callback")
 
+        policy.allow_method(HttpVerb.GET, f"/ytmusic/isLoggedIn/*")
         policy.allow_method(HttpVerb.GET, f"/ytmusic/login/*")
         policy.allow_method(HttpVerb.POST, f"/ytmusic/poll-token")
 

@@ -282,20 +282,20 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:YtMusic-*"
       Events:
-#        IsLoggedIn: # Event for the isLoggedIn path
-#          Type: Api
-#          Properties:
-#            Path: /ytmusic/isLoggedIn/{userId}
-#            Method: get
-#            RestApiId: !Ref SpotifyToYtMusicApi
-#        OptionsIsLoggedIn:
-#          Type: Api
-#          Properties:
-#            Path: /ytmusic/isLoggedIn/{userId}
-#            Method: options
-#            RestApiId: !Ref SpotifyToYtMusicApi
-#            Auth:
-#              Authorizer: NONE
+        IsLoggedIn: # Event for the isLoggedIn path
+          Type: Api
+          Properties:
+            Path: /ytmusic/isLoggedIn/{userId}
+            Method: get
+            RestApiId: !Ref SpotifyToYtMusicApi
+        OptionsIsLoggedIn:
+          Type: Api
+          Properties:
+            Path: /ytmusic/isLoggedIn/{userId}
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
         Login: # Event for the login path
           Type: Api
           Properties:
