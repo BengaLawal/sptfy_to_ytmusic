@@ -2,193 +2,132 @@
  * Dashboard Component
  * Main dashboard interface for the playlist transfer application.
  * Handles user authentication, service connections, and playlist management.
+ *
+ * Features:
+ * - User authentication and profile management
+ * - Spotify and YouTube Music service connections
+ * - Playlist browsing and selection
+ * - Playlist transfer functionality
  */
-import React, {useCallback, useEffect, useState} from 'react';
-import {fetchUserAttributes, getCurrentUser, signOut} from 'aws-amplify/auth';
-import {useNavigate} from 'react-router-dom';
-import {loginSpotify, fetchPlaylists, isLoggedIntoSpotify} from '../utils/spotifyApi';
-import {loginYtmusic, pollInterval, isLoggedIntoYtMusic} from '../utils/ytmusicApi.jsx';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { checkUserAuth, handleUserSignOut } from '../handlers/authHandlers';
+import { handleYouTubeMusicAuth } from '../handlers/youtubeAuthHandler';
+import { handleSpotifyAuthentication, fetchSpotifyPlaylists } from '../handlers/spotifyAuthHandler';
 import '../styles/dashboard.css';
 
+/**
+ * Dashboard functional component
+ * Manages the main application interface and state
+ * @returns {JSX.Element} The rendered Dashboard component
+ */
 const Dashboard = () => {
-    // Navigation hook
     const navigate = useNavigate();
 
     // State management
-    const [user, setUser] = useState(null);                    // Current authenticated user
-    const [userAttributes, setUserAttributes] = useState(null); // User profile attributes
-    const [loading, setLoading] = useState(true);              // Loading state
-    const [spotifyConnected, setSpotifyConnected] = useState(false);  // Spotify connection status
-    const [youtubeConnected, setYoutubeConnected] = useState(false); // YouTube connection status
-    const [playlists, setPlaylists] = useState([]);           // User's playlists
-    const [selectedPlaylists, setSelectedPlaylists] = useState([]); // Hold selected playlists
-    const [selectedPlaylistId, setSelectedPlaylistId] = useState(null); // Hold the selected playlist ID
-    const [error, setError] = useState(null);                 // Error state
+    const [user, setUser] = useState(null);                                   // Current authenticated user
+    const [userAttributes, setUserAttributes] = useState(null);               // User profile attributes
+    const [loading, setLoading] = useState(true);                            // Loading state flag
+    const [spotifyConnected, setSpotifyConnected] = useState(false);         // Spotify connection status
+    const [youtubeConnected, setYoutubeConnected] = useState(false);        // YouTube Music connection status
+    const [playlists, setPlaylists] = useState([]);                         // User's Spotify playlists
+    const [selectedPlaylists, setSelectedPlaylists] = useState([]);          // Selected playlists for transfer
+    const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);      // Currently viewed playlist
+    const [error, setError] = useState(null);                               // Error state
 
     /**
-     * Checks user authentication status and fetches user attributes
-     * Redirects to login if not authenticated
+     * Checks user authentication status
+     * Updates user state and attributes if authenticated
      */
     const checkAuth = useCallback(async () => {
         try {
-            const [currentUser, attributes] = await Promise.all([
-                getCurrentUser(),
-                fetchUserAttributes()
-            ]);
-            setUser(currentUser);
+            const { user, attributes } = await checkUserAuth(navigate);
+            setUser(user);
             setUserAttributes(attributes);
             setLoading(false);
         } catch (error) {
-            console.error('Not authenticated', error);
-            navigate('/login');
+            setError('Authentication failed');
         }
     }, [navigate]);
 
     /**
-     * Fetches user's playlists from Spotify
-     * Updates playlists state and handles loading/error states
+     * Fetches user's Spotify playlists
+     * Updates playlists state with fetched data
      */
-    const fetchPlaylistsData = useCallback(async () => {
+    const fetchSpotifyPlaylistsData = useCallback(async () => {
         try {
             setLoading(true);
-            const playlistsData = await fetchPlaylists();
-            setPlaylists(playlistsData.playlists);
+            const playlistsData = await fetchSpotifyPlaylists();
+            setPlaylists(playlistsData);
         } catch (error) {
             setError('Error fetching playlists');
-            console.error('Error fetching playlists:', error);
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Check authentication on component mount
     useEffect(() => {
         checkAuth();
-    }, []);
+    }, [checkAuth]);
 
-    // Fetch playlists when Spotify is connected
     useEffect(() => {
         if (spotifyConnected) {
-            fetchPlaylistsData();
+            fetchSpotifyPlaylistsData();
         }
-    }, [spotifyConnected, fetchPlaylistsData]);
+    }, [spotifyConnected, fetchSpotifyPlaylistsData]);
 
     /**
      * Handles user sign out
-     * Clears authentication and redirects to login
+     * Clears authentication and navigates to login
      */
     const handleSignOut = async () => {
         try {
-            await signOut();
-            navigate('/login');
+            await handleUserSignOut(navigate);
         } catch (error) {
             setError('Error signing out');
-            console.error('Error signing out:', error);
         }
     };
 
     /**
-     * Initiates Spotify OAuth flow
-     * Redirects user to Spotify login page if not already connected
+     * Initiates Spotify authentication
+     * Updates connection status on success
      */
     const handleSpotifyAuth = async () => {
         try {
-            console.log('Checking Spotify connection...');
-            const response =  await isLoggedIntoSpotify();
-            console.log('Spotify connection response:', response)
-
-            if (response.isLoggedIn) {
-                console.log('Already connected to Spotify');
-                setSpotifyConnected(true);
-                await fetchPlaylistsData();
-                return;
-            }
-
-            const authUrl = await loginSpotify();
-            if (authUrl) {
-                window.location.href = authUrl;
-            } else {
-                throw new Error('Failed to get Spotify login URL');
-            }
+            await handleSpotifyAuthentication(setSpotifyConnected, fetchSpotifyPlaylistsData);
         } catch (error) {
             setError('Spotify authentication failed');
-            console.error('Spotify authentication error:', error);
         }
-    };
-
-    const handlePlaylistSelect = (playlistId) => {
-        setSelectedPlaylists((prevSelected) => {
-            if (prevSelected.includes(playlistId)) {
-                setSelectedPlaylistId(null); // Deselect if already selected
-                return prevSelected.filter(id => id !== playlistId); // Deselect if already selected
-            } else {
-                setSelectedPlaylistId(playlistId); // Select the playlist and show embed
-                return [...prevSelected, playlistId]; // Select the playlist
-            }
-        });
-        console.log(selectedPlaylists)
     };
 
     /**
-     * Initiates YouTube Music OAuth flow
+     * Initiates YouTube Music authentication
+     * Updates connection status on success
      */
     const handleYouTubeAuth = async () => {
-
-        console.log('Checking YtMusic connection...');
-        const response =  await isLoggedIntoYtMusic();
-        console.log('YtMusic connection response:', response)
-
-        if (response.isLoggedIn) {
-            console.log('Already connected to YtMusic');
-            setYoutubeConnected(true);
-            return;
-        }
-
-        const MAX_RETRIES = 60;
-        setLoading(true)
         try {
-            // Implement YouTube Music OAuth flow
-            console.log('Connecting to YouTube Music...');
-            const response = await loginYtmusic();
-
-            console.log('YouTube Music connection response:', response);
-            const { verification_url, device_code, interval } = response;
-
-            const newWindow = window.open(verification_url, '_blank');
-            if (!newWindow) {
-                throw new Error('Popup blocked. Please enable popups and try again.');
-            }
-
-            let tokenStatus = await pollInterval(device_code, interval);
-            let attempts = 0;
-
-            while (tokenStatus.status !== 'completed' && attempts < MAX_RETRIES) {
-                console.log('Polling for token status...');
-                await new Promise(resolve => setTimeout(resolve, interval * 1000));
-                tokenStatus = await pollInterval(device_code, interval);
-                attempts++
-            }
-
-
-            if (tokenStatus.status === 'completed') {
-                console.log('Token exchange completed successfully');
-                setYoutubeConnected(true);
-                window.location.href = '/dashboard';
-                // After successful connection:
-            }else if (tokenStatus.status === 'error') {
-                throw new Error(tokenStatus.message || 'Token exchange failed');
-            } else {
-                throw new Error('Polling timeout: Token exchange took too long');
-            }
-
+            await handleYouTubeMusicAuth(setLoading, setYoutubeConnected);
         } catch (error) {
-            console.error('YouTube Music authentication error:', error);
-            setYoutubeConnected(false);
-        } finally {
-            setLoading(false);
+            setError('YouTube Music authentication failed');
         }
     };
 
+    /**
+     * Handles playlist selection/deselection
+     * Updates selected playlists state and current view
+     * @param {string} playlistId - ID of the selected playlist
+     */
+    const handlePlaylistSelect = (playlistId) => {
+        setSelectedPlaylists((prevSelected) => {
+            if (prevSelected.includes(playlistId)) {
+                setSelectedPlaylistId(null);
+                return prevSelected.filter(id => id !== playlistId);
+            } else {
+                setSelectedPlaylistId(playlistId);
+                return [...prevSelected, playlistId];
+            }
+        });
+    };
     // Loading state render
     if (loading) {
         return <div className="loading-container">Loading...</div>;

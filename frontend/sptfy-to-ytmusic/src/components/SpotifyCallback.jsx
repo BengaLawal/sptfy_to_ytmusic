@@ -10,7 +10,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { handleSpotifyCallback } from '../utils/spotifyApi.jsx';
+import { handleSpotifyCallback } from '../api/spotifyApi.jsx';
 
 const SpotifyCallback = () => {
     // Navigation hook for redirecting after callback processing
