@@ -7,7 +7,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {fetchUserAttributes, getCurrentUser, signOut} from 'aws-amplify/auth';
 import {useNavigate} from 'react-router-dom';
 import {loginSpotify, fetchPlaylists, isLoggedIntoSpotify} from '../utils/spotifyApi';
-import {loginYtmusic, pollInterval} from '../utils/ytmusicApi.jsx';
+import {loginYtmusic, pollInterval, isLoggedIntoYtMusic} from '../utils/ytmusicApi.jsx';
 import '../styles/dashboard.css';
 
 const Dashboard = () => {
@@ -131,9 +131,19 @@ const Dashboard = () => {
 
     /**
      * Initiates YouTube Music OAuth flow
-     * TODO: Implement actual YouTube Music authentication
      */
     const handleYouTubeAuth = async () => {
+
+        console.log('Checking YtMusic connection...');
+        const response =  await isLoggedIntoYtMusic();
+        console.log('YtMusic connection response:', response)
+
+        if (response.isLoggedIn) {
+            console.log('Already connected to YtMusic');
+            setYoutubeConnected(true);
+            return;
+        }
+
         const MAX_RETRIES = 60;
         setLoading(true)
         try {

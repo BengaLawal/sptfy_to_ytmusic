@@ -19,6 +19,35 @@ const getAuthHeader = async () => {
     }
 };
 
+export const isLoggedIntoYtMusic = async () => {
+    try {
+        // Get user and auth details in parallel
+        const [user, authHeader] = await Promise.all([
+            getCurrentUser(),
+            getAuthHeader()
+        ]);
+        const response = await fetch(`${VITE_API_BASE_URL}/ytmusic/isLoggedIn/${user.userId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await data;
+    } catch (error) {
+        console.error('Error checking YtMusic login status:', error);
+        throw error;
+    }
+};
+
+
 /**
  * Initiates ytmusic login flow
  * @returns {Promise<string>} Spotify authorization URL
