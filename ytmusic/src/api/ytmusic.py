@@ -3,7 +3,7 @@ import logging
 from ytmusicapi.auth.oauth import OAuthCredentials
 from shared_utils.dynamodb import DynamoDBService
 from shared_utils.secrets_manager import get_secret
-from shared_utils.token_validity import is_token_valid
+from shared_utils.token_validator import is_token_valid
 
 
 # Configure logging
