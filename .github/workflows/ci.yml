@@ -35,6 +35,12 @@ jobs:
             pip install -r "$file"
           done
 
+      - name: Create package structure
+        run: |
+          echo "Setting up package structure..."
+          # Create __init__.py files to make directories into Python packages
+          find . -type d -not -path "*/\.*" -not -path "*/venv*" -exec touch {}/__init__.py \;
+
       - name: Run unit tests
         run: |
           echo "Running unit tests..."
