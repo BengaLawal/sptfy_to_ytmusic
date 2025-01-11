@@ -69,7 +69,7 @@ class TestYTMusicHelpers(unittest.TestCase):
     @mock_aws
     def test_get_oauth_success(self):
         """Test successful creation of OAuth credentials."""
-        with patch('ytmusic.src.api.ytmusic.get_secret', return_value=self.mock_secrets):
+        with patch('backend.ytmusic.src.api.ytmusic.get_secret', return_value=self.mock_secrets):
             oauth = _get_oauth()
 
             self.assertIsInstance(oauth, OAuthCredentials)
@@ -82,7 +82,7 @@ class TestYTMusicHelpers(unittest.TestCase):
         mock_oauth = MagicMock()
         mock_oauth.get_code.return_value = self.mock_code
 
-        with patch('ytmusic.src.api.ytmusic._get_oauth', return_value=mock_oauth):
+        with patch('backend.ytmusic.src.api.ytmusic._get_oauth', return_value=mock_oauth):
             result = _get_oauth_data()
 
             self.assertEqual(result['verification_url'],
@@ -101,8 +101,8 @@ class TestYTMusicHelpers(unittest.TestCase):
         mock_oauth = MagicMock()
         mock_oauth.refresh_token.return_value = self.token_info
 
-        with patch('ytmusic.src.api.ytmusic._get_oauth', return_value=mock_oauth), \
-                patch('ytmusic.src.api.ytmusic.db_service.update_token', return_value=True):
+        with patch('backend.ytmusic.src.api.ytmusic._get_oauth', return_value=mock_oauth), \
+                patch('backend.ytmusic.src.api.ytmusic.db_service.update_token', return_value=True):
             result = _refresh_ytmusic_token(self.user_id, self.refresh_token)
 
             self.assertEqual(result, self.token_info['access_token'])
@@ -114,8 +114,8 @@ class TestYTMusicHelpers(unittest.TestCase):
         mock_oauth = MagicMock()
         mock_oauth.refresh_token.return_value = self.token_info
 
-        with patch('ytmusic.src.api.ytmusic._get_oauth', return_value=mock_oauth), \
-                patch('ytmusic.src.api.ytmusic.db_service.update_token', return_value=False):
+        with patch('backend.ytmusic.src.api.ytmusic._get_oauth', return_value=mock_oauth), \
+                patch('backend.ytmusic.src.api.ytmusic.db_service.update_token', return_value=False):
             result = _refresh_ytmusic_token(self.user_id, self.refresh_token)
 
             self.assertIsNone(result)

@@ -63,9 +63,9 @@ class TestSpotifyHelpers(unittest.TestCase):
     @mock_aws
     def test_get_spotify_service_success(self):
         """Test successful creation of Spotify service."""
-        with patch('spotify.src.api.spotify.get_secret', return_value=self.mock_secrets), \
-                patch('spotify.src.api.spotify.SpotifyOAuth') as mock_oauth, \
-                patch('spotify.src.api.spotify.spotipy.Spotify') as mock_spotify_class:
+        with patch('backend.spotify.src.api.spotify.get_secret', return_value=self.mock_secrets), \
+                patch('backend.spotify.src.api.spotify.SpotifyOAuth') as mock_oauth, \
+                patch('backend.spotify.src.api.spotify.spotipy.Spotify') as mock_spotify_class:
             mock_spotify = MagicMock()
             mock_spotify_class.return_value = mock_spotify
 
@@ -87,8 +87,8 @@ class TestSpotifyHelpers(unittest.TestCase):
         """Test handling of missing secrets."""
         incomplete_secrets = {"SPOTIPY_CLIENT_ID": "test_id"}
 
-        with patch('spotify.src.api.spotify.get_secret', return_value=incomplete_secrets), \
-                patch('spotify.src.api.spotify.logger', self.logger):
+        with patch('backend.spotify.src.api.spotify.get_secret', return_value=incomplete_secrets), \
+                patch('backend.spotify.src.api.spotify.logger', self.logger):
             with self.assertRaises(KeyError):
                 _get_spotify_service()
 
@@ -107,8 +107,8 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.auth_manager.refresh_access_token.return_value = new_token_info
 
-        with patch('spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify), \
-                patch('spotify.src.api.spotify.db_service.update_token', return_value=True):
+        with patch('backend.spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify), \
+                patch('backend.spotify.src.api.spotify.db_service.update_token', return_value=True):
             result = _refresh_spotify_token(self.user_id, self.refresh_token)
 
             self.assertEqual(result, new_token_info['access_token'])
@@ -120,8 +120,8 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.auth_manager.refresh_access_token.return_value = self.token_info
 
-        with patch('spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify), \
-                patch('spotify.src.api.spotify.db_service.update_token', return_value=False):
+        with patch('backend.spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify), \
+                patch('backend.spotify.src.api.spotify.db_service.update_token', return_value=False):
             result = _refresh_spotify_token(self.user_id, self.refresh_token)
 
             self.assertIsNone(result)
@@ -134,7 +134,7 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.auth_manager = mock_auth_manager
 
-        with patch('spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify):
+        with patch('backend.spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify):
             result = _exchange_code_for_token("test_code")
 
             self.assertEqual(result, self.token_info)
@@ -152,8 +152,8 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.auth_manager = mock_auth_manager
 
-        with patch('spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify), \
-                patch('spotify.src.api.spotify.logger', self.logger):
+        with patch('backend.spotify.src.api.spotify._get_spotify_service', return_value=mock_spotify), \
+                patch('backend.spotify.src.api.spotify.logger', self.logger):
             result = _exchange_code_for_token("invalid_code")
 
             self.assertIsNone(result)
@@ -169,7 +169,7 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.current_user_playlists.return_value = mock_response
 
-        with patch('spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
+        with patch('backend.spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
             result = _get_playlists(self.access_token)
 
             self.assertIsNotNone(result)
@@ -187,7 +187,7 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.current_user_playlists.side_effect = responses
 
-        with patch('spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
+        with patch('backend.spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
             result = _get_playlists(self.access_token)
 
             self.assertEqual(len(result['items']), 75)
@@ -200,8 +200,8 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.current_user_playlists.side_effect = Exception("API Error")
 
-        with patch('spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify), \
-                patch('spotify.src.api.spotify.logger', self.logger):
+        with patch('backend.spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify), \
+                patch('backend.spotify.src.api.spotify.logger', self.logger):
             result = _get_playlists(self.access_token)
 
             self.assertIsNone(result)
@@ -212,7 +212,7 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_spotify = MagicMock()
         mock_spotify.current_user_playlists.return_value = {'invalid': 'response'}
 
-        with patch('spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
+        with patch('backend.spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
             result = _get_playlists(self.access_token)
 
             self.assertIsNone(result)
