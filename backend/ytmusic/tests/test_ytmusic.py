@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from moto import mock_aws
 from ytmusicapi.auth.oauth import OAuthCredentials
 
-from ytmusic.src.api.ytmusic import (
+from backend.ytmusic.src.api.ytmusic import (
     _get_oauth, _get_oauth_data, _refresh_ytmusic_token,
 )
 

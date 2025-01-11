@@ -4,7 +4,7 @@ import json
 from moto import mock_aws
 import os
 from botocore.exceptions import ClientError
-from layer.python.shared_utils.secrets_manager import get_secret  # Assuming the function is in secrets_manager.py
+from shared_utils.secrets_manager import get_secret  # Assuming the function is in secrets_manager.py
 
 
 @pytest.fixture(scope='function')

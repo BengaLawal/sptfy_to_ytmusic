@@ -1,7 +1,7 @@
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import Mock, MagicMock
-from layer.python.shared_utils.token_validator import is_token_valid
+from datetime import datetime
+from unittest.mock import Mock
+from shared_utils.token_validator import is_token_valid
 
 
 @pytest.fixture

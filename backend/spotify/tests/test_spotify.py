@@ -6,7 +6,7 @@ from moto import mock_aws
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch, ANY, call
 
-from spotify.src.api.spotify import (
+from backend.spotify.src.api.spotify import (
     _get_spotify_service, _refresh_spotify_token, _exchange_code_for_token,
     _get_playlists, SCOPE, SPOTIPY_REDIRECT_URI
 )

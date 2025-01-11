@@ -3,7 +3,7 @@ import boto3
 import os
 from moto import mock_aws
 from datetime import datetime, timezone
-from layer.python.shared_utils.dynamodb import DynamoDBService  # Assuming the class is in dynamodb_service.py
+from shared_utils.dynamodb import DynamoDBService  # Assuming the class is in dynamodb_service.py
 
 
 @pytest.fixture(scope='function')

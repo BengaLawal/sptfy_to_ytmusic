@@ -14,7 +14,7 @@ jobs:
 
     env:
       AWS_DEFAULT_REGION: eu-west-1
-      PYTHONPATH: ${{ github.workspace }}/layer/python:${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}/backend/layer/python:${{ github.workspace }}
 
     steps:
       - name: Checkout code
@@ -38,4 +38,4 @@ jobs:
       - name: Run unit tests
         run: |
           echo "Running unit tests..."
-          python3 -m pytest spotify/tests/ ytmusic/tests/ layer/tests/  -v          
+          python3 -m pytest backend/spotify/tests/ backend/ytmusic/tests/ backend/layer/tests/  -v          
