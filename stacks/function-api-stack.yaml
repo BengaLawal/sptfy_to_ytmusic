@@ -196,6 +196,8 @@ Resources:
     Properties:
       CodeUri: ../spotify/src/api
       Handler: spotify.lambda_handler
+      Layers:
+        - !Ref SharedUtilsLayer
       Environment:
         Variables:
           USERS_TABLE: !Ref UsersTable
@@ -270,6 +272,8 @@ Resources:
     Properties:
       CodeUri: ../ytmusic/src/api
       Handler: ytmusic.lambda_handler
+      Layers:
+        - !Ref SharedUtilsLayer
       Environment:
         Variables:
           USERS_TABLE: !Ref UsersTable
@@ -342,6 +346,15 @@ Resources:
 #      LogGroupName:
 #        !Sub /aws/lambda/${SpotifyFunction}
 
+  SharedUtilsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: shared-utils-layer
+      Description: Common utilities for Spotify and YouTube Music Lambda functions
+      ContentUri: ../layer
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Retain
 
 Outputs:
   SpotifyToYtMusicApi:
