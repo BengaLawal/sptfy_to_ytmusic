@@ -14,6 +14,8 @@ import { useNavigate } from 'react-router-dom';
 import { checkUserAuth, handleUserSignOut } from '../handlers/authHandlers';
 import { handleYouTubeMusicAuth } from '../handlers/youtubeAuthHandler';
 import { handleSpotifyAuthentication, fetchSpotifyPlaylists } from '../handlers/spotifyAuthHandler';
+import { isLoggedIntoSpotify } from '../api/spotifyApi';
+import {isLoggedIntoYtMusic} from "../api/ytmusicApi.jsx";
 import '../styles/dashboard.css';
 
 /**
@@ -34,6 +36,31 @@ const Dashboard = () => {
     const [selectedPlaylists, setSelectedPlaylists] = useState([]);          // Selected playlists for transfer
     const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);      // Currently viewed playlist
     const [error, setError] = useState(null);                               // Error state
+
+    useEffect(() => {
+        const initializeDash = async () => {
+            try {
+                setLoading(true);
+                // First check authentication
+                await checkAuth();
+
+                // Only after auth is confirmed, check service connections
+                const spotifyStatus = await isLoggedIntoSpotify();
+                setSpotifyConnected(spotifyStatus.isLoggedIn);
+
+                const youtubeStatus = await isLoggedIntoYtMusic();
+                setYoutubeConnected(youtubeStatus.isLoggedIn);
+
+            } catch (error) {
+                setError('Initialization failed');
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initializeDash();
+    }, []);
 
     /**
      * Checks user authentication status
