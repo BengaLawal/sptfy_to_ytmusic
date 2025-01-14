@@ -11,4 +11,5 @@ export default defineConfig({
       interval: 100, // Polling interval in milliseconds
     },
   },
+  envPrefix: 'VITE_',
 })
