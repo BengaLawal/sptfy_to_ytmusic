@@ -17,6 +17,7 @@ YTMUSIC_REDIRECT_URI= "http://localhost:5173/ytmusic/callback"
 REGION_NAME = "eu-west-1"
 SECRET_NAME = "YtMusic"
 SERVICE_PREFIX = "ytmusic"
+ACCESS_CONTROL_ALLOW_ORIGIN = "https://master.d3tjriompcjyyz.amplifyapp.com" # Update for production
 
 db_service = DynamoDBService(USERS_TABLE)
 
@@ -230,7 +231,7 @@ def lambda_handler(event, context):
     """Main entry point for the AWS Lambda function."""
     headers = {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': "http://localhost:5173",  # Update for production
+        'Access-Control-Allow-Origin': ACCESS_CONTROL_ALLOW_ORIGIN,
         'Access-Control-Allow-Methods': 'OPTIONS, POST, GET, PUT, DELETE',
         'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
         'Access-Control-Expose-Headers': 'Authorization, X-Custom-Header',

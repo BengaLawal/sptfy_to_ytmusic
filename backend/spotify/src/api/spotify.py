@@ -15,10 +15,11 @@ logging.basicConfig(level=logging.INFO)
 # USERS_TABLE = os.environ['USERS_TABLE']
 USERS_TABLE = "dev-UsersTable"
 SCOPE = "user-read-email, user-read-private, playlist-read-private, playlist-read-collaborative, user-library-read"
-SPOTIPY_REDIRECT_URI = "http://localhost:5173/spotify/callback"
+SPOTIPY_REDIRECT_URI = "https://master.d3tjriompcjyyz.amplifyapp.com/spotify/callback"
 region_name = "eu-west-1"
 secret_name = "Spotify"
 SERVICE_PREFIX = "spotify"
+ACCESS_CONTROL_ALLOW_ORIGIN = "https://master.d3tjriompcjyyz.amplifyapp.com" # Update for production
 
 db_service = DynamoDBService(USERS_TABLE)
 
@@ -414,7 +415,7 @@ def lambda_handler(event, context):
     """
     headers = {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': "http://localhost:5173",  # Update for production
+        'Access-Control-Allow-Origin': ACCESS_CONTROL_ALLOW_ORIGIN,
         'Access-Control-Allow-Methods': 'OPTIONS, POST, GET, PUT, DELETE',
         'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
         'Access-Control-Expose-Headers': 'Authorization, X-Custom-Header',

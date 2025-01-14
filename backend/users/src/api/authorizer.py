@@ -12,6 +12,7 @@ keys = {}
 user_pool_id = os.getenv('USER_POOL_ID', None)
 app_client_id = os.getenv('APPLICATION_CLIENT_ID', None)
 admin_group_name = os.getenv('ADMIN_GROUP_NAME', None)
+ACCESS_CONTROL_ALLOW_ORIGIN = "https://master.d3tjriompcjyyz.amplifyapp.com"
 
 
 def validate_token(token, region):
@@ -88,7 +89,7 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'headers' : {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': "http://localhost:5173",  # Update for production
+                'Access-Control-Allow-Origin': ACCESS_CONTROL_ALLOW_ORIGIN,
                 'Access-Control-Allow-Methods': 'OPTIONS, POST, GET, PUT, DELETE',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
                 'Access-Control-Expose-Headers': 'Authorization, X-Custom-Header',
