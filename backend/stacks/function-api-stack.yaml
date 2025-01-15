@@ -349,8 +349,8 @@ Resources:
   SharedUtilsLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: shared-utils-layer
-      Description: Common utilities for Spotify and YouTube Music Lambda functions
+      LayerName: shared-utils-config-layer
+      Description: Lambda Layer Stack for Shared Utils and Config
       ContentUri: ../layer
       CompatibleRuntimes:
         - python3.12

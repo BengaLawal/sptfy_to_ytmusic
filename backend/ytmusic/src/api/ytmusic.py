@@ -1,29 +1,22 @@
 import json
 import logging
+from config import YTMusicConfig
 from ytmusicapi.auth.oauth import OAuthCredentials
 from shared_utils.dynamodb import DynamoDBService
 from shared_utils.secrets_manager import get_secret
 from shared_utils.token_validator import is_token_valid
 
+config = YTMusicConfig()
 
 # Configure logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Environment Variables
-# USERS_TABLE = os.environ['USERS_TABLE']
-USERS_TABLE = "dev-UsersTable"
-YTMUSIC_REDIRECT_URI= "http://localhost:5173/ytmusic/callback"
-REGION_NAME = "eu-west-1"
-SECRET_NAME = "YtMusic"
-SERVICE_PREFIX = "ytmusic"
-ACCESS_CONTROL_ALLOW_ORIGIN = "https://master.d3tjriompcjyyz.amplifyapp.com" # Update for production
-
-db_service = DynamoDBService(USERS_TABLE)
+db_service = DynamoDBService(config.USERS_TABLE)
 
 
 def _get_oauth():
-    secrets = get_secret(REGION_NAME, SECRET_NAME)
+    secrets = get_secret(config.REGION_NAME, config.SECRET_NAME)
     return OAuthCredentials(
         client_id=secrets['YTMUSIC_CLIENT_ID'],
         client_secret=secrets['YTMUSIC_CLIENT_SECRET'],
@@ -62,7 +55,7 @@ def _refresh_ytmusic_token(user_id, refresh_token):
     try:
         oauth = _get_oauth()
         new_token_info = oauth.refresh_token(refresh_token)
-        if db_service.update_token(user_id, new_token_info, SERVICE_PREFIX):
+        if db_service.update_token(user_id, new_token_info, config.SERVICE_PREFIX):
             return new_token_info['access_token']
         return None
     except Exception as e:
@@ -101,7 +94,7 @@ def handle_is_logged_in(event):
             })
         }
 
-    access_token = is_token_valid(db_service, user_id, SERVICE_PREFIX, _refresh_ytmusic_token)
+    access_token = is_token_valid(db_service, user_id, config.SERVICE_PREFIX, _refresh_ytmusic_token)
     if access_token:
         return {
             'statusCode': 200,
@@ -175,7 +168,7 @@ def handle_poll_token_status(event):
         oauth = _get_oauth()
         token = oauth.token_from_code(device_code)
         if isinstance(token, dict) and 'access_token' in token:
-            db_service.store_tokens(user_id, token, SERVICE_PREFIX)
+            db_service.store_tokens(user_id, token, config.SERVICE_PREFIX)
             return {
                 'statusCode': 200,
                 'body': json.dumps({
@@ -231,7 +224,7 @@ def lambda_handler(event, context):
     """Main entry point for the AWS Lambda function."""
     headers = {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': ACCESS_CONTROL_ALLOW_ORIGIN,
+        'Access-Control-Allow-Origin': config.ACCESS_CONTROL_ALLOW_ORIGIN,
         'Access-Control-Allow-Methods': 'OPTIONS, POST, GET, PUT, DELETE',
         'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
         'Access-Control-Expose-Headers': 'Authorization, X-Custom-Header',

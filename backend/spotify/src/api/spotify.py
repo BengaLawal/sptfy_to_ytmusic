@@ -1,27 +1,19 @@
 import json
 import spotipy
 import logging
+from config import SpotifyConfig
 from spotipy.oauth2 import SpotifyOAuth
 from shared_utils.dynamodb import DynamoDBService
 from shared_utils.secrets_manager import get_secret
 from shared_utils.token_validator import is_token_valid
 
+config = SpotifyConfig()
 
 # Configure logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Environment Variables
-# USERS_TABLE = os.environ['USERS_TABLE']
-USERS_TABLE = "dev-UsersTable"
-SCOPE = "user-read-email, user-read-private, playlist-read-private, playlist-read-collaborative, user-library-read"
-SPOTIPY_REDIRECT_URI = "https://master.d3tjriompcjyyz.amplifyapp.com/spotify/callback"
-region_name = "eu-west-1"
-secret_name = "Spotify"
-SERVICE_PREFIX = "spotify"
-ACCESS_CONTROL_ALLOW_ORIGIN = "https://master.d3tjriompcjyyz.amplifyapp.com" # Update for production
-
-db_service = DynamoDBService(USERS_TABLE)
+db_service = DynamoDBService(config.USERS_TABLE)
 
 
 def _get_spotify_service():
@@ -38,7 +30,7 @@ def _get_spotify_service():
         Exception: If there is an error creating the Spotify service
     """
     try:
-        secrets = get_secret(region_name, secret_name)
+        secrets = get_secret(config.REGION_NAME, config.SECRET_NAME)
 
         # Validate required secrets exist
         if not all(key in secrets for key in ["SPOTIPY_CLIENT_ID", "SPOTIPY_CLIENT_SECRET"]):
@@ -49,8 +41,8 @@ def _get_spotify_service():
         auth_manager = SpotifyOAuth(
             client_id=secrets["SPOTIPY_CLIENT_ID"],
             client_secret=secrets["SPOTIPY_CLIENT_SECRET"],
-            redirect_uri=SPOTIPY_REDIRECT_URI,
-            scope=SCOPE,
+            redirect_uri=config.REDIRECT_URI,
+            scope=config.SCOPE,
             open_browser=True,
             show_dialog=True,
             cache_handler=spotipy.MemoryCacheHandler()
@@ -80,7 +72,7 @@ def _refresh_spotify_token(user_id, refresh_token):
     """
     try:
         new_token_info = _get_spotify_service().auth_manager.refresh_access_token(refresh_token)
-        if db_service.update_token(user_id, new_token_info, SERVICE_PREFIX):
+        if db_service.update_token(user_id, new_token_info, config.SERVICE_PREFIX):
             return new_token_info['access_token']
         return None
     except Exception as e:
@@ -190,7 +182,7 @@ def handle_is_logged_in(event):
             })
         }
 
-    access_token = is_token_valid(db_service, user_id, SERVICE_PREFIX, _refresh_spotify_token)
+    access_token = is_token_valid(db_service, user_id, config.SERVICE_PREFIX, _refresh_spotify_token)
     if access_token:
         return {
             'statusCode': 200,
@@ -285,7 +277,7 @@ def handle_spotify_callback(event):
             return {'error': 'Authorization code not found in request body'}
 
         token_info = _exchange_code_for_token(code)
-        db_service.store_tokens(user_id, token_info, SERVICE_PREFIX)
+        db_service.store_tokens(user_id, token_info, config.SERVICE_PREFIX)
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -334,7 +326,7 @@ def handle_get_user_playlists(event):
             }
 
         # Validate token
-        access_token = is_token_valid(db_service, user_id, SERVICE_PREFIX, _refresh_spotify_token)
+        access_token = is_token_valid(db_service, user_id, config.SERVICE_PREFIX, _refresh_spotify_token)
         if not access_token:
             return {
                 'statusCode': 401,
@@ -415,7 +407,7 @@ def lambda_handler(event, context):
     """
     headers = {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': ACCESS_CONTROL_ALLOW_ORIGIN,
+        'Access-Control-Allow-Origin': config.ACCESS_CONTROL_ALLOW_ORIGIN,
         'Access-Control-Allow-Methods': 'OPTIONS, POST, GET, PUT, DELETE',
         'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
         'Access-Control-Expose-Headers': 'Authorization, X-Custom-Header',
