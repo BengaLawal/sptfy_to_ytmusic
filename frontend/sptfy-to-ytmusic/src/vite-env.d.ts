@@ -6,6 +6,8 @@ interface ImportMetaEnv {
     readonly VITE_IDENTITY_POOL_ID: string;
     readonly VITE_AUTH_ROLE_ARN: string;
     readonly VITE_UNAUTH_ROLE_ARN: string;
+    readonly VITE_REGION: string;
+    readonly VITE_API_BASE_URL: string;
 }
 
 interface ImportMeta {
