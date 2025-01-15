@@ -8,9 +8,11 @@ from unittest.mock import MagicMock, patch, ANY, call
 
 from backend.spotify.src.api.spotify import (
     _get_spotify_service, _refresh_spotify_token, _exchange_code_for_token,
-    _get_playlists, SCOPE, SPOTIPY_REDIRECT_URI
+    _get_playlists
 )
+from backend.layer.python.config.spotify_config import SpotifyConfig
 
+config_ = SpotifyConfig()
 
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
@@ -74,8 +76,8 @@ class TestSpotifyHelpers(unittest.TestCase):
             mock_oauth.assert_called_once_with(
                 client_id=self.mock_secrets["SPOTIPY_CLIENT_ID"],
                 client_secret=self.mock_secrets["SPOTIPY_CLIENT_SECRET"],
-                redirect_uri=SPOTIPY_REDIRECT_URI,
-                scope=SCOPE,
+                redirect_uri=config_.REDIRECT_URI,
+                scope=config_.SCOPE,
                 open_browser=True,
                 show_dialog=True,
                 cache_handler=ANY
