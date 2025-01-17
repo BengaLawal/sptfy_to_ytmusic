@@ -5,21 +5,21 @@ import time
 import urllib.request
 from jose import jwk, jwt
 from jose.utils import base64url_decode
+from config import AuthorizerConfig
+
+config_ = AuthorizerConfig()
 
 # *** Section 1 : base setup and token validation helper function
 is_cold_start = True
 keys = {}
-user_pool_id = os.getenv('USER_POOL_ID', None)
-app_client_id = os.getenv('APPLICATION_CLIENT_ID', None)
-admin_group_name = os.getenv('ADMIN_GROUP_NAME', None)
-ACCESS_CONTROL_ALLOW_ORIGIN = "https://master.d3tjriompcjyyz.amplifyapp.com"
+
 
 
 def validate_token(token, region):
-    global keys, is_cold_start, user_pool_id, app_client_id
+    global keys, is_cold_start
     if is_cold_start:
         # KEYS_URL -- REPLACE WHEN CHANGING IDENTITY PROVIDER!!
-        keys_url = f'https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json'
+        keys_url = f'https://cognito-idp.{region}.amazonaws.com/{config_.USER_POOL_ID}/.well-known/jwks.json'
         with urllib.request.urlopen(keys_url) as f:
             response = f.read()
         keys = json.loads(response.decode('utf-8'))['keys']
@@ -65,23 +65,22 @@ def validate_token(token, region):
     token_use = claims.get('token_use')
     if token_use == 'access':
         # For access tokens, verify client_id
-        if claims.get('client_id') != app_client_id:
+        if claims.get('client_id') != config_.APP_CLIENT_ID:
             print('Access Token was not issued for this client')
             return False
     elif token_use == 'id':
         # For ID tokens, verify aud
-        if claims.get('aud') != app_client_id:
+        if claims.get('aud') != config_.APP_CLIENT_ID:
             print('ID Token was not issued for this audience')
             return False
     else:
         print('Invalid token use claim')
         return False
-    decoded_jwt = jwt.decode(token, key=keys[key_index], audience=app_client_id)
+    decoded_jwt = jwt.decode(token, key=keys[key_index], audience=config_.APP_CLIENT_ID)
     return decoded_jwt
 
 
 def lambda_handler(event, context):
-    global admin_group_name
 
     # Handle OPTIONS preflight request
     if event.get('httpMethod') == 'OPTIONS':
@@ -89,7 +88,7 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'headers' : {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': ACCESS_CONTROL_ALLOW_ORIGIN,
+                'Access-Control-Allow-Origin': config_.ACCESS_CONTROL_ALLOW_ORIGIN,
                 'Access-Control-Allow-Methods': 'OPTIONS, POST, GET, PUT, DELETE',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
                 'Access-Control-Expose-Headers': 'Authorization, X-Custom-Header',
@@ -131,6 +130,7 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.GET, f"/spotify/login/{principal_id}")
     policy.allow_method(HttpVerb.GET, f"/spotify/playlists/{principal_id}")
     policy.allow_method(HttpVerb.POST, f"/spotify/callback")
+    policy.allow_method(HttpVerb.GET, f"/spotify/playlists/{principal_id}/*/tracks")
 
     policy.allow_method(HttpVerb.GET, f"/ytmusic/isLoggedIn/{principal_id}")
     policy.allow_method(HttpVerb.GET, f"/ytmusic/login/{principal_id}")
@@ -138,7 +138,7 @@ def lambda_handler(event, context):
 
     # Look for admin group in Cognito groups
     # Assumption: admin group always has higher precedence
-    if 'cognito:groups' in validated_decoded_token and validated_decoded_token['cognito:groups'][0] == admin_group_name:
+    if 'cognito:groups' in validated_decoded_token and validated_decoded_token['cognito:groups'][0] == config_.ADMIN_GROUP_NAME:
         # add administrative privileges
         policy.allow_method(HttpVerb.GET, "users")
         policy.allow_method(HttpVerb.GET, "users/*")

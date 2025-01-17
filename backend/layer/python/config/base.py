@@ -9,5 +9,6 @@ class BaseConfig:
         self.USERS_TABLE = os.getenv('USERS_TABLE', "dev-UsersTable")
         self.ACCESS_CONTROL_ALLOW_ORIGIN = os.getenv(
             'ACCESS_CONTROL_ALLOW_ORIGIN',
-            "https://master.d3tjriompcjyyz.amplifyapp.com"
+            # "https://master.d3tjriompcjyyz.amplifyapp.com"
+            "http://localhost:5173"
         )

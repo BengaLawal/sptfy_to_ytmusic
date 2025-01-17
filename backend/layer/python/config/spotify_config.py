@@ -15,5 +15,9 @@ class SpotifyConfig(BaseConfig):
         super().__init__()
         self.REDIRECT_URI = os.getenv(
             'SPOTIFY_REDIRECT_URI',
-            "https://master.d3tjriompcjyyz.amplifyapp.com/spotify/callback"
+            f"{self.ACCESS_CONTROL_ALLOW_ORIGIN}/spotify/callback"
         )
+        # self.PLAYLIST_TRANSFER_TOPIC = os.getenv(
+        #     'PLAYLIST_TRANSFER_TOPIC',
+        #     ""  #TODO: add default topic
+        # )

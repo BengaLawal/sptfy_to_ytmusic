@@ -122,6 +122,8 @@ Resources:
     Properties:
       CodeUri: ../users/src/api
       Handler: authorizer.lambda_handler
+      Layers:
+        - !Ref SharedUtilsLayer
       Description: Handler for Lambda authorizer
       Environment:
         Variables:
@@ -191,6 +193,11 @@ Resources:
       LogGroupName:
         !Sub /aws/lambda/${UsersFunction}
 
+#  SpotifyToYtMusicTopic:
+#    Type: AWS::SNS::Topic
+#    Properties:
+#      TopicName: !Sub ${AWS::StackName}-playlist-transfer
+
   SpotifyFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -201,6 +208,7 @@ Resources:
       Environment:
         Variables:
           USERS_TABLE: !Ref UsersTable
+#          PLAYLIST_TRANSFER_TOPIC: !Ref SpotifyToYtMusicTopic
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
@@ -209,6 +217,8 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:Spotify-*"
+#        - SNSPublishMessagePolicy:
+#            TopicName: !GetAtt SpotifyToYtMusicTopic.TopicName
       Events:
         IsLoggedIn: # Event for the isLoggedIn path
           Type: Api
@@ -266,6 +276,20 @@ Resources:
             RestApiId: !Ref SpotifyToYtMusicApi
             Auth:
               Authorizer: NONE
+#        GetPlaylistTracks:
+#          Type: Api
+#          Properties:
+#            Path: /spotify/playlists/{userId}/{playlistId}/tracks
+#            Method: get
+#            RestApiId: !Ref SpotifyToYtMusicApi
+#        OptionsGetPlaylistTracks:
+#          Type: Api
+#          Properties:
+#            Path: /spotify/playlists/{userId}/{playlistId}/tracks
+#            Method: options
+#            RestApiId: !Ref SpotifyToYtMusicApi
+#            Auth:
+#              Authorizer: NONE
 
   YtMusicFunction:
     Type: AWS::Serverless::Function
@@ -329,6 +353,27 @@ Resources:
             Auth:
               Authorizer: NONE
 
+#  SpotifyToYtMusicFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: ../ytmusic/src/api
+#      Handler: ytmusic.handle_playlist_transfer
+#      Layers:
+#        - !Ref SharedUtilsLayer
+#      Events:
+#        SNSTopicEvent:
+#          Type: SNS
+#          Properties:
+#            Topic: !Ref SpotifyToYtMusicTopic
+#      Policies:
+#        - DynamoDBCrudPolicy:
+#            TableName: !Ref UsersTable
+#        - Statement:
+#            - Effect: Allow
+#              Action:
+#                - secretsmanager:GetSecretValue
+#              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:YtMusic-*"
+
 
   YtMusicFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -345,6 +390,14 @@ Resources:
 #    Properties:
 #      LogGroupName:
 #        !Sub /aws/lambda/${SpotifyFunction}
+
+#  SpotifyToYtMusicFunctionLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    DeletionPolicy: Retain
+#    UpdateReplacePolicy: Retain
+#    Properties:
+#      LogGroupName:
+#        !Sub /aws/lambda/${SpotifyToYtMusicFunction}
 
   SharedUtilsLayer:
     Type: AWS::Serverless::LayerVersion
@@ -372,3 +425,11 @@ Outputs:
   SpotifyFunctionArn:
     Description: ARN of the Spotify Lambda function
     Value: !GetAtt SpotifyFunction.Arn
+
+#  YtMusicFunctionArn:
+#    Description: ARN of the YouTube Music Lambda function
+#    Value: !GetAtt YtMusicFunction.Arn
+#
+#  SpotifyToYtMusicTopicArn:
+#    Description: ARN of the Spotify to YouTube Music SNS topic
+#    Value: !Ref SpotifyToYtMusicTopic

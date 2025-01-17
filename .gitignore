@@ -131,7 +131,7 @@ fabric.properties
 
 ### SAM+config Patch ###
 # SAM config - exclude this file if sharing publicly
-samconfig.toml
+backend/samconfig.toml
 
 ### Serverless ###
 # Ignore build directory
