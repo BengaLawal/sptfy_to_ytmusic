@@ -7,7 +7,7 @@ from moto import mock_aws
 from ytmusicapi.auth.oauth import OAuthCredentials
 
 from backend.ytmusic.src.api.ytmusic import (
-    _get_oauth, _get_oauth_data, _refresh_ytmusic_token,
+    _get_oauth, _get_oauth_data, _refresh_ytmusic_token, _create_ytmusic_playlist, _search_and_add_tracks,
 )
 
 
@@ -119,6 +119,93 @@ class TestYTMusicHelpers(unittest.TestCase):
             result = _refresh_ytmusic_token(self.user_id, self.refresh_token)
 
             self.assertIsNone(result)
+
+    @mock_aws
+    def test_create_ytmusic_playlist_success(self):
+        """Test successful creation of a YouTube Music playlist."""
+        mock_ytmusic_client = MagicMock()
+        mock_ytmusic_client.create_playlist.return_value = "test_playlist_id"
+        playlist_name = "Test Playlist"
+        description = "This is a test playlist."
+
+        playlist_id = _create_ytmusic_playlist(mock_ytmusic_client, playlist_name, description)
+
+        self.assertEqual(playlist_id, "test_playlist_id")
+        mock_ytmusic_client.create_playlist.assert_called_once_with(
+            title=playlist_name,
+            description=description,
+            privacy_status='PRIVATE'
+        )
+
+    @mock_aws
+    def test_create_ytmusic_playlist_failure(self):
+        """Test failure in creating a YouTube Music playlist."""
+        mock_ytmusic_client = MagicMock()
+        mock_ytmusic_client.create_playlist.side_effect = Exception("Failed to create playlist")
+
+        playlist_name = "Test Playlist"
+
+        with self.assertRaises(Exception) as context:
+            _create_ytmusic_playlist(mock_ytmusic_client, playlist_name)
+
+        self.assertEqual(str(context.exception), "Failed to create playlist")
+        mock_ytmusic_client.create_playlist.assert_called_once_with(
+            title=playlist_name,
+            description="",
+            privacy_status='PRIVATE'
+        )
+
+    @mock_aws
+    def test_search_and_add_tracks_success(self):
+        """Test successful search and addition of tracks to a playlist."""
+        mock_ytmusic_client = MagicMock()
+        mock_ytmusic_client.search.return_value = [{'videoId': 'test_video_id'}]
+        mock_ytmusic_client.add_playlist_items.return_value = None
+
+        playlist_id = "test_playlist_id"
+        tracks = [{'name': 'Test Track', 'artists': ['Test Artist']}]
+
+        results = _search_and_add_tracks(mock_ytmusic_client, playlist_id, tracks)
+
+        self.assertEqual(results['successful'], 1)
+        self.assertEqual(results['failed'], 0)
+        self.assertEqual(results['not_found'], 0)
+        mock_ytmusic_client.search.assert_called_once_with("Test Track Test Artist", filter='songs', limit=1)
+        mock_ytmusic_client.add_playlist_items.assert_called_once_with(playlist_id, ['test_video_id'])
+
+    @mock_aws
+    def test_search_and_add_tracks_not_found(self):
+        """Test track not found scenario during search and addition."""
+        mock_ytmusic_client = MagicMock()
+        mock_ytmusic_client.search.return_value = []
+
+        playlist_id = "test_playlist_id"
+        tracks = [{'name': 'Nonexistent Track', 'artists': ['Nonexistent Artist']}]
+
+        results = _search_and_add_tracks(mock_ytmusic_client, playlist_id, tracks)
+
+        self.assertEqual(results['successful'], 0)
+        self.assertEqual(results['failed'], 0)
+        self.assertEqual(results['not_found'], 1)
+        mock_ytmusic_client.search.assert_called_once_with("Nonexistent Track Nonexistent Artist", filter='songs',
+                                                           limit=1)
+
+    @mock_aws
+    def test_search_and_add_tracks_failure(self):
+        """Test failure in adding a track to a playlist."""
+        mock_ytmusic_client = MagicMock()
+        mock_ytmusic_client.search.return_value = [{'videoId': 'test_video_id'}]
+        mock_ytmusic_client.add_playlist_items.side_effect = Exception("Failed to add track")
+
+        playlist_id = "test_playlist_id"
+        tracks = [{'name': 'Test Track', 'artists': ['Test Artist']}]
+
+        results = _search_and_add_tracks(mock_ytmusic_client, playlist_id, tracks)
+
+        self.assertEqual(results['successful'], 0)
+        self.assertEqual(results['failed'], 1)
+        self.assertEqual(results['not_found'], 0)
+        mock_ytmusic_client.search.assert_called_once_with("Test Track Test Artist", filter='songs', limit=1)
 
 if __name__ == '__main__':
     unittest.main()

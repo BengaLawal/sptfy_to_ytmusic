@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from datetime import datetime
 
 from ytmusicapi import YTMusic
 from config import YTMusicConfig
@@ -152,9 +153,11 @@ def handle_is_logged_in(event):
         Raises:
             None: Exceptions are handled internally and returned as error responses
     """
+    logger.info("Checking login status")
     path_parameters = event.get('pathParameters', {})
     user_id = path_parameters.get('userId')
     if not user_id:
+        logger.info("No userId provided in request")
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -162,8 +165,10 @@ def handle_is_logged_in(event):
             })
         }
 
+    logger.info(f"Validating token for user {user_id}")
     access_token = is_token_valid(db_service, user_id, config_.SERVICE_PREFIX, _refresh_ytmusic_token)
     if access_token:
+        logger.info(f"User {user_id} is logged in")
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -172,6 +177,7 @@ def handle_is_logged_in(event):
             })
         }
     else:
+        logger.info(f"User {user_id} is not logged in")
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -183,9 +189,11 @@ def handle_is_logged_in(event):
 
 def handle_login_ytmusic(event):
     """ Handle ytmusic login and redirect the user to the ytmusic login page."""
+    logger.info("Processing YouTube Music login request")
     path_parameters = event.get('pathParameters', {})
     user_id = path_parameters.get('userId')
     if not user_id:
+        logger.info("No userId provided in login request")
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -193,8 +201,10 @@ def handle_login_ytmusic(event):
             })
         }
 
+    logger.info(f"Generating OAuth data for user {user_id}")
     oauth_data =  _get_oauth_data()
     if not oauth_data:
+        logger.info("Failed to generate OAuth URL")
         return {
             'statusCode': 500,
             'body': json.dumps({
@@ -202,6 +212,7 @@ def handle_login_ytmusic(event):
             })
         }
     else:
+        logger.info(f"Successfully generated OAuth data for user {user_id}")
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -209,7 +220,6 @@ def handle_login_ytmusic(event):
                 'data': oauth_data
             })
         }
-
 
 def handle_poll_token_status(event):
     """Handle token polling for YouTube Music OAuth flow
@@ -220,11 +230,13 @@ def handle_poll_token_status(event):
         Returns:
             API Gateway response with appropriate status code and message
     """
+    logger.info("Starting token polling process")
     body = json.loads(event.get('body', '{}'))
     device_code = body.get('device_code')
     user_id = body.get('userId')
 
     if not device_code or not user_id:
+        logger.info(f"Missing required parameters - device_code: {bool(device_code)}, userId: {bool(user_id)}")
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -233,9 +245,11 @@ def handle_poll_token_status(event):
         }
 
     try:
+        logger.info(f"Attempting to get token for user {user_id}")
         oauth = _get_oauth()
         token = oauth.token_from_code(device_code)
         if isinstance(token, dict) and 'access_token' in token:
+            logger.info(f"Successfully obtained access token for user {user_id}")
             db_service.store_tokens(user_id, token, config_.SERVICE_PREFIX)
             return {
                 'statusCode': 200,
@@ -245,6 +259,7 @@ def handle_poll_token_status(event):
                 })
             }
         if isinstance(token, dict) and token.get('error') == 'authorization_pending':
+            logger.info(f"Authorization still pending for user {user_id}")
             return {
                 'statusCode': 202,
                 'body': json.dumps({
@@ -252,6 +267,7 @@ def handle_poll_token_status(event):
                     'status': 'pending'
                 })
             }
+        logger.info(f"Invalid token response received for user {user_id}: {token}")
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -262,6 +278,7 @@ def handle_poll_token_status(event):
         }
     except Exception as e:
         error_message = str(e).lower()
+        logger.info(f"Exception during token polling for user {user_id}: {error_message}")
 
         if 'authorization_pending' in error_message:
             return {
@@ -283,26 +300,54 @@ def handle_poll_token_status(event):
 
 def handle_spotify_sns_message(event, context):
     """Handle SNS messages for playlist transfer."""
+    logger.info("Starting Spotify playlist transfer process")
     logger.info(event)
     for record in event['Records']:
         message = json.loads(record['Sns']['Message'])
         user_id = message['user_id']
         playlists = message['playlists']
 
-        access_token = is_token_valid(db_service, user_id, config_.SERVICE_PREFIX, _refresh_ytmusic_token)
-        if not access_token:
-            logger.error("Invalid or expired YouTube Music token")
-            continue  # Skip processing if token is invalid
+        current_time = int(datetime.now().timestamp())
+        token_key = f'{config_.SERVICE_PREFIX}_access_token'
+        expires_key = f'{config_.SERVICE_PREFIX}_expires_at'
+        refresh_key = f'{config_.SERVICE_PREFIX}_refresh_token'
 
-        ytmusic_client = YTMusic(auth=access_token)
+        logger.info(f"Processing transfer request for user {user_id} with {len(playlists)} playlists")
+
+        token_info = db_service.get_tokens(user_id, config_.SERVICE_PREFIX)
+        logger.info(f"token info: {token_info}")
+
+        # Check if the token is expired
+        if token_info[expires_key] <= current_time:
+            logger.info("Access token has expired, refreshing token...")
+            new_access_token = _refresh_ytmusic_token(user_id, token_info[refresh_key])
+            if not new_access_token:
+                logger.error("Failed to refresh access token")
+                continue  # Skip processing if token refresh fails
+            token_info[token_key] = new_access_token
+            token_info[expires_key] = current_time + 3600
+
+        ytmusic_client = YTMusic(auth={
+            "scope": "https://www.googleapis.com/auth/youtube",
+            "token_type": "Bearer",
+            "access_token": token_info[token_key],
+            "refresh_token": token_info[refresh_key],
+            "expires_at": token_info[f'{expires_key}'],
+            "expires_in": 3600
+        })
+
+        logger.info(f"ytmusic client: {ytmusic_client}")
 
         for playlist in playlists:
             playlist_name = playlist['playlist_name']
             tracks = playlist['tracks']
 
+            logger.info(f"Processing playlist '{playlist_name}' with {len(tracks)} tracks")
+
             try:
                 # Create the playlist in YouTube Music
                 created_playlist_id = _create_ytmusic_playlist(ytmusic_client, playlist_name)
+                logger.info(f"Created YouTube Music playlist '{playlist_name}' with ID: {created_playlist_id}")
 
                 # Search for tracks and add them to the created playlist
                 transfer_results = _search_and_add_tracks(ytmusic_client, created_playlist_id, tracks)

@@ -210,7 +210,7 @@ def _publish_to_sns(playlist_data, user_id):
             TopicArn=config_.PLAYLIST_TRANSFER_TOPIC,
             Message=json.dumps({
                 'user_id': user_id,
-                'playlist': playlist_data,
+                'playlists': playlist_data,
             })
         )
         logger.info(f"Published to SNS: {response}")
