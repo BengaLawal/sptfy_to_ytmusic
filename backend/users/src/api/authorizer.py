@@ -115,7 +115,7 @@ def lambda_handler(event, context):
     # *** Section 2 : authorization rules
     # Allow all public resources/methods explicitly
 
-    # Allow OPTIONS for all routes (add this before your specific rules)
+    # Allow OPTIONS for all routes
     policy.allow_method(HttpVerb.OPTIONS, "*")
 
     # Add user specific resources/methods
@@ -136,6 +136,8 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.GET, f"/ytmusic/login/{principal_id}")
     policy.allow_method(HttpVerb.POST, f"/ytmusic/poll-token")
 
+    policy.allow_method(HttpVerb.POST, f"/transfer/sptfy-to-ytmusic")
+
     # Look for admin group in Cognito groups
     # Assumption: admin group always has higher precedence
     if 'cognito:groups' in validated_decoded_token and validated_decoded_token['cognito:groups'][0] == config_.ADMIN_GROUP_NAME:
@@ -152,9 +154,11 @@ def lambda_handler(event, context):
         policy.allow_method(HttpVerb.GET, "spotify/playlists/*")
         policy.allow_method(HttpVerb.POST, "spotify/callback")
 
-        policy.allow_method(HttpVerb.GET, f"/ytmusic/isLoggedIn/*")
-        policy.allow_method(HttpVerb.GET, f"/ytmusic/login/*")
-        policy.allow_method(HttpVerb.POST, f"/ytmusic/poll-token")
+        policy.allow_method(HttpVerb.GET, f"ytmusic/isLoggedIn/*")
+        policy.allow_method(HttpVerb.GET, f"ytmusic/login/*")
+        policy.allow_method(HttpVerb.POST, f"ytmusic/poll-token")
+
+        policy.allow_method(HttpVerb.POST, "transfer/sptfy-to-ytmusic")
 
 
     # Finally, build the policy

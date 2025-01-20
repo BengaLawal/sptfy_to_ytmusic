@@ -1,6 +1,7 @@
 import json
 import spotipy
 import logging
+import boto3
 from config import SpotifyConfig
 from spotipy.oauth2 import SpotifyOAuth
 from shared_utils.dynamodb import DynamoDBService
@@ -11,7 +12,7 @@ config_ = SpotifyConfig()
 
 # Configure logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logger.setLevel(level=logging.INFO)
 
 db_service = DynamoDBService(config_.USERS_TABLE)
 
@@ -60,7 +61,7 @@ def _refresh_spotify_token(user_id, refresh_token):
     It updates the user's token information in DynamoDB with the new access token and expiration time.
 
     Args:
-        userId (str): The unique identifier for the user whose token to refresh
+        user_id (str): The unique identifier for the user whose token to refresh
         refresh_token (str): The Spotify refresh token to use for getting a new access token
 
     Returns:
@@ -78,7 +79,6 @@ def _refresh_spotify_token(user_id, refresh_token):
     except Exception as e:
         logger.error(f"Error refreshing token: {str(e)}")
         return None
-
 
 def _exchange_code_for_token(code):
     """Exchange the authorization code for Spotify access and refresh tokens.
@@ -150,6 +150,80 @@ def _get_playlists(access_token):
         logger.error(f"Error fetching playlists: {str(e)}")
         return None
 
+
+def _get_playlist_tracks(spotify_client, playlist_id, access_token):
+    """Fetch all tracks from a Spotify playlist with batch processing.
+
+    Args:
+        spotify_client: Authenticated Spotify client
+        playlist_id (str): Spotify playlist ID
+        access_token (str): Valid Spotify access token
+
+    Returns:
+        list: List of track objects with essential info
+    """
+    try:
+        playlist_details = spotify_client.playlist(playlist_id)
+        playlist_name = playlist_details['name']
+
+        tracks = []
+        offset = 0
+        limit = 100  # Spotify's maximum limit per request
+
+        while True:
+            response = spotify_client.playlist_items(
+                playlist_id,
+                offset=offset,
+                limit=limit,
+                fields='items(track(name,artists(name),duration_ms)),total,next',
+                additional_types=['track']
+            )
+
+            if not response or 'items' not in response:
+                break
+
+            # Extract just the needed track info
+            for item in response['items']:
+                if item['track']:  # Check if track exists (could be None for deleted tracks)
+                    track = item['track']
+                    tracks.append({
+                        'name': track['name'],
+                        'artists': [artist['name'] for artist in track['artists']],
+                        'duration_ms': track['duration_ms']
+                    })
+
+            if not response.get('next'):
+                break
+
+            offset += limit
+
+        return playlist_name, tracks
+    except Exception as e:
+        logger.error(f"Error fetching playlist tracks: {str(e)}")
+        raise
+
+
+def _publish_to_sns(playlist_data, user_id):
+    try:
+        sns_client = boto3.client('sns')
+        response = sns_client.publish(
+            TopicArn=config_.PLAYLIST_TRANSFER_TOPIC,
+            Message=json.dumps({
+                'user_id': user_id,
+                'playlist': playlist_data,
+            })
+        )
+        logger.info(f"Published to SNS: {response}")
+
+        # Check if the publish was successful (SNS returns a 200 status code)
+        if response and 'MessageId' in response:
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error publishing to SNS: {str(e)}")
+        return False
+
+
 # ---------------------------------------------------------------------------------------
 
 def handle_is_logged_in(event):
@@ -175,6 +249,7 @@ def handle_is_logged_in(event):
     path_parameters = event.get('pathParameters', {})
     user_id = path_parameters.get('userId')
     if not user_id:
+        logger.info(f"Missing userId in path parameters")
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -182,8 +257,10 @@ def handle_is_logged_in(event):
             })
         }
 
+    logger.info(f"Checking login status for user {user_id}")
     access_token = is_token_valid(db_service, user_id, config_.SERVICE_PREFIX, _refresh_spotify_token)
     if access_token:
+        logger.info(f"User {user_id} is logged in")
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -192,6 +269,7 @@ def handle_is_logged_in(event):
             })
         }
     else:
+        logger.info(f"User {user_id} is not logged in")
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -224,6 +302,7 @@ def handle_login_spotify(event):
     path_parameters = event.get('pathParameters', {})
     user_id = path_parameters.get('userId')
     if not user_id:
+        logger.info("Missing userId in path parameters")
         return {
             'statusCode': 400,
             'body': json.dumps({
@@ -231,7 +310,9 @@ def handle_login_spotify(event):
             })
         }
 
+    logger.info(f"Generating Spotify authorization URL for user {user_id}")
     authorize_url = _get_spotify_service().auth_manager.get_authorize_url()
+    logger.info(f"Redirecting user {user_id} to Spotify login")
     return {
         'statusCode': 200,
         'body': json.dumps({
@@ -239,7 +320,6 @@ def handle_login_spotify(event):
             'url': authorize_url
         })
     }
-
 
 # TODO: Fix callback - current problem - Failed to exchange authorization code: error: invalid_grant, error_description: Invalid authorization code - but it works and stores the token.
 def handle_spotify_callback(event):
@@ -273,11 +353,14 @@ def handle_spotify_callback(event):
         code = body.get('code')
         user_id = body.get('userId')
 
+        logger.info(f"Processing Spotify callback for user {user_id}")
+
         if not code:
             return {'error': 'Authorization code not found in request body'}
 
         token_info = _exchange_code_for_token(code)
         db_service.store_tokens(user_id, token_info, config_.SERVICE_PREFIX)
+        logger.info(f"Successfully authenticated Spotify for user {user_id}")
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -317,6 +400,8 @@ def handle_get_user_playlists(event):
         # Extract and validate user ID
         path_parameters = event.get('pathParameters', {})
         user_id = path_parameters.get('userId')
+        logger.info(f"Fetching playlists for user {user_id}")
+
         if not user_id:
             return {
                 'statusCode': 400,
@@ -338,6 +423,7 @@ def handle_get_user_playlists(event):
         playlists = _get_playlists(access_token)
 
         if not playlists or 'items' not in playlists:
+            logger.info(f"No playlists found for user {user_id}")
             return {
                 'statusCode': 404,
                 'body': json.dumps({
@@ -345,6 +431,7 @@ def handle_get_user_playlists(event):
                 })
             }
 
+        logger.info(f"Successfully retrieved {len(playlists['items'])} playlists for user {user_id}")
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -370,6 +457,79 @@ def handle_get_user_playlists(event):
                 'error': str(e)
             })
         }
+
+
+def handle_transfer_to_ytmusic(event):
+    """Handle the request to transfer selected playlists from Spotify to YouTube Music."""
+    try:
+        body = json.loads(event.get('body', '{}'))
+        user_id = body.get('userId',  None)
+        playlist_ids = body.get('playlistIds', [])
+
+        logger.info(f"Starting playlist transfer for user {user_id}, playlists: {playlist_ids}")
+
+        if not user_id or not playlist_ids:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'message': 'userId and playlistIds are required in path parameters'
+                })
+            }
+
+        access_token = is_token_valid(db_service, user_id, config_.SERVICE_PREFIX, _refresh_spotify_token)
+        if not access_token:
+            return {
+                'statusCode': 401,
+                'body': json.dumps({
+                    'message': 'Invalid or expired token'
+                })
+            }
+
+        spotify_client = spotipy.Spotify(auth=access_token)
+
+        # Collect all playlists' details
+        all_playlists_data = []
+
+        for playlist_id in playlist_ids:
+            logger.info(f"Fetching tracks for playlist {playlist_id}")
+            playlist_name, tracks = _get_playlist_tracks(spotify_client, playlist_id, access_token)
+
+            if tracks:
+                all_playlists_data.append({
+                    'playlist_id': playlist_id,
+                    'playlist_name': playlist_name,
+                    'tracks': tracks
+                })
+
+        # Publish to SNS for async processing with all playlists' data
+        if all_playlists_data:
+            logger.info(f"Publishing transfer request to SNS for user {user_id}")
+            sns_published = _publish_to_sns(all_playlists_data, user_id)
+            if not sns_published:
+                logger.info(f"Failed to publish SNS message for user {user_id}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'message': 'Failed to initiate transfer process'})
+                }
+
+        logger.info(f"Successfully initiated transfer for {len(all_playlists_data)} playlists")
+        return {
+            'statusCode': 200,
+            'body' : json.dumps({
+                'message': 'Transfer initiated successfully',
+                'playlists': all_playlists_data
+            })
+        }
+    except Exception as e:
+        logger.error(f"Error in handle_get_playlist_tracks: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'message': 'Internal server error',
+                'error': str(e)
+            })
+        }
+
 # -------------------------------------------------------------------------------------
 
 # Map routes to functions
@@ -378,7 +538,7 @@ operations = {
     'GET /spotify/login/{userId}': lambda event: handle_login_spotify(event),
     'POST /spotify/callback': lambda event: handle_spotify_callback(event),
     'GET /spotify/playlists/{userId}': lambda event: handle_get_user_playlists(event),
-
+    'POST /transfer/sptfy-to-ytmusic': lambda event: handle_transfer_to_ytmusic(event),
 }
 
 def lambda_handler(event, context):

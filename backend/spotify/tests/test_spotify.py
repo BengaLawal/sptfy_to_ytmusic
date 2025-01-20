@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch, ANY, call
 
 from backend.spotify.src.api.spotify import (
     _get_spotify_service, _refresh_spotify_token, _exchange_code_for_token,
-    _get_playlists
+    _get_playlists, _get_playlist_tracks, _publish_to_sns
 )
 from backend.layer.python.config.spotify_config import SpotifyConfig
 
@@ -219,6 +219,71 @@ class TestSpotifyHelpers(unittest.TestCase):
 
             self.assertIsNone(result)
 
+    @mock_aws
+    def test_get_playlist_tracks_success(self):
+        """Test successful retrieval of tracks from a Spotify playlist."""
+        mock_spotify = MagicMock()
+        mock_spotify.playlist.return_value = {'name': 'My Playlist'}
+        mock_spotify.playlist_items.return_value = {
+            'items': [
+                {'track': {'name': 'Track 1', 'artists': [{'name': 'Artist 1'}], 'duration_ms': 200000}},
+                {'track': {'name': 'Track 2', 'artists': [{'name': 'Artist 2'}], 'duration_ms': 300000}}
+            ],
+            'next': None
+        }
 
+        with patch('backend.spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
+            playlist_name, tracks = _get_playlist_tracks(mock_spotify, 'playlist_id', self.access_token)
+
+            self.assertEqual(playlist_name, 'My Playlist')
+            self.assertEqual(len(tracks), 2)
+            self.assertEqual(tracks[0]['name'], 'Track 1')
+            self.assertEqual(tracks[1]['artists'], ['Artist 2'])
+
+    def test_get_playlist_tracks_empty_playlist(self):
+        """Test handling of an empty playlist."""
+        mock_spotify = MagicMock()
+        mock_spotify.playlist.return_value = {'name': 'Empty Playlist'}
+        mock_spotify.playlist_items.return_value = {'items': [], 'next': None}
+
+        with patch('backend.spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify):
+            playlist_name, tracks = _get_playlist_tracks(mock_spotify, 'playlist_id', self.access_token)
+
+            self.assertEqual(playlist_name, 'Empty Playlist')
+            self.assertEqual(len(tracks), 0)
+
+    def test_get_playlist_tracks_error_handling(self):
+        """Test error handling when fetching tracks."""
+        mock_spotify = MagicMock()
+        mock_spotify.playlist.side_effect = Exception("API Error")
+
+        with patch('backend.spotify.src.api.spotify.spotipy.Spotify', return_value=mock_spotify), \
+                patch('backend.spotify.src.api.spotify.logger', self.logger):
+            with self.assertRaises(Exception):
+                _get_playlist_tracks(mock_spotify, 'playlist_id', self.access_token)
+            self.logger.error.assert_called_with("Error fetching playlist tracks: API Error")
+
+    def test_publish_to_sns_success(self):
+        """Test successful publishing to SNS."""
+        mock_sns = MagicMock()
+        mock_sns.publish.return_value = {'MessageId': '12345'}
+
+        with patch('backend.spotify.src.api.spotify.boto3.client', return_value=mock_sns):
+            result = _publish_to_sns([{'playlist_id': '1', 'tracks': []}], self.user_id)
+
+            self.assertTrue(result)
+            mock_sns.publish.assert_called_once()
+
+    def test_publish_to_sns_error_handling(self):
+        """Test error handling when publishing to SNS."""
+        mock_sns = MagicMock()
+        mock_sns.publish.side_effect = Exception("SNS Publish Error")
+
+        with patch('backend.spotify.src.api.spotify.boto3.client', return_value=mock_sns), \
+                patch('backend.spotify.src.api.spotify.logger', self.logger):
+            result = _publish_to_sns([{'playlist_id': '1', 'tracks': []}], self.user_id)
+
+            self.assertFalse(result)
+            self.logger.error.assert_called_with("Error publishing to SNS: SNS Publish Error")
 if __name__ == '__main__':
     unittest.main()

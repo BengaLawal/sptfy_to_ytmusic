@@ -1,5 +1,8 @@
 import json
 import logging
+import time
+
+from ytmusicapi import YTMusic
 from config import YTMusicConfig
 from ytmusicapi.auth.oauth import OAuthCredentials
 from shared_utils.dynamodb import DynamoDBService
@@ -10,7 +13,7 @@ config_ = YTMusicConfig()
 
 # Configure logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logger.setLevel(level=logging.INFO)
 
 db_service = DynamoDBService(config_.USERS_TABLE)
 
@@ -61,6 +64,71 @@ def _refresh_ytmusic_token(user_id, refresh_token):
     except Exception as e:
         logger.error(f"Error refreshing token: {str(e)}")
         return None
+
+
+def _create_ytmusic_playlist(ytmusic_client, playlist_name, description=""):
+    """Create a new YouTube Music playlist.
+
+    Args:
+        ytmusic_client: Authenticated YTMusic client
+        playlist_name (str): Name for the new playlist
+        description (str): Optional playlist description
+
+    Returns:
+        str: ID of the created playlist
+    """
+    try:
+        return ytmusic_client.create_playlist(
+            title=playlist_name,
+            description=description,
+            privacy_status='PRIVATE'  # Start as private for safety
+        )
+    except Exception as e:
+        logger.error(f"Error creating YouTube Music playlist: {str(e)}")
+        raise
+
+
+def _search_and_add_tracks(ytmusic_client, playlist_id, tracks, batch_size=50):
+    """Search for tracks on YouTube Music and add them to playlist with batch processing.
+
+    Args:
+        ytmusic_client: Authenticated YTMusic client
+        playlist_id (str): YouTube Music playlist ID
+        tracks (list): List of track objects from Spotify
+        batch_size (int): Number of tracks to process in each batch
+
+    Returns:
+        dict: Summary of transfer results
+    """
+    results = {
+        'successful': 0,
+        'failed': 0,
+        'not_found': 0
+    }
+
+    for i in range(0, len(tracks), batch_size):
+        batch = tracks[i:i + batch_size]
+        for track in batch:
+            try:
+                # Create search query from track info
+                query = f"{track['name']} {' '.join(track['artists'])}"
+                search_results = ytmusic_client.search(query, filter='songs', limit=1)
+
+                if search_results and len(search_results) > 0:
+                    video_id = search_results[0]['videoId']
+                    ytmusic_client.add_playlist_items(playlist_id, [video_id])
+                    results['successful'] += 1
+                else:
+                    results['not_found'] += 1
+
+                # Add small delay to respect rate limits
+                time.sleep(0.5)
+
+            except Exception as e:
+                logger.error(f"Error adding track {track['name']}: {str(e)}")
+                results['failed'] += 1
+
+    return results
 
 # ---------------------------------------------------------------------------------------
 
@@ -211,6 +279,39 @@ def handle_poll_token_status(event):
                     'status': 'expired'
                 })
             }
+
+
+def handle_spotify_sns_message(event, context):
+    """Handle SNS messages for playlist transfer."""
+    logger.info(event)
+    for record in event['Records']:
+        message = json.loads(record['Sns']['Message'])
+        user_id = message['user_id']
+        playlists = message['playlists']
+
+        access_token = is_token_valid(db_service, user_id, config_.SERVICE_PREFIX, _refresh_ytmusic_token)
+        if not access_token:
+            logger.error("Invalid or expired YouTube Music token")
+            continue  # Skip processing if token is invalid
+
+        ytmusic_client = YTMusic(auth=access_token)
+
+        for playlist in playlists:
+            playlist_name = playlist['playlist_name']
+            tracks = playlist['tracks']
+
+            try:
+                # Create the playlist in YouTube Music
+                created_playlist_id = _create_ytmusic_playlist(ytmusic_client, playlist_name)
+
+                # Search for tracks and add them to the created playlist
+                transfer_results = _search_and_add_tracks(ytmusic_client, created_playlist_id, tracks)
+
+                logger.info(f"Transfer results for playlist '{playlist_name}': {transfer_results}")
+
+            except Exception as e:
+                logger.error(f"Error processing playlist '{playlist_name}': {str(e)}")
+
 # -------------------------------------------------------------------------------------
 
 # Map routes to functions
