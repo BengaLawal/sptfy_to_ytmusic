@@ -1,13 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Signup from './components/Signup';
-import Login from "./components/Login.jsx";
-import ConfirmSignup from './components/ConfirmSignup';
-import Dashboard from './components/Dashboard.jsx';
-import ProtectedRoute from './components/ProtectedRoute';
-import SpotifyCallback from './components/SpotifyCallback';
-
+import Nav from "./components/nav/Nav.jsx";
+import Home from "./components/home/Home.jsx";
+import Dashboard from "./components/dashboard/Dashboard.jsx";
 import { Amplify } from 'aws-amplify';
+import { Authenticator } from "@aws-amplify/ui-react";
+import '@aws-amplify/ui-react/styles.css';
+import './App.css';
 
 // Configure Amplify with the AWS configuration
 Amplify.configure({
@@ -23,31 +22,17 @@ Amplify.configure({
 
 function App() {
     return (
-        <Router>
-            <div className="app-container">
-                <Routes>
-                    <Route path="/"
-                           element={
-                               <ProtectedRoute>
-                                   <Dashboard />
-                               </ProtectedRoute>
-                           }
-                    />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/confirm-signup" element={<ConfirmSignup />} />
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route path="/spotify/callback" element={<SpotifyCallback />} />
-                </Routes>
-            </div>
-        </Router>
+        <Authenticator.Provider>
+            <Router>
+                <Nav />
+                <div className="main-content">
+                    <Routes>
+                        <Route path="/" element={<Home />}/>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                    </Routes>
+                </div>
+            </Router>
+        </Authenticator.Provider>
     );
 }
 

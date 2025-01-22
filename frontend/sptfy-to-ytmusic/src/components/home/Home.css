@@ -1,0 +1,52 @@
+.home {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+    background-color: #121212;
+    padding: 20px;
+    color: #1db960;
+}
+
+.home h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.home p {
+    font-size: 1.2rem;
+    margin: 10px 0;
+}
+
+.home-image {
+    max-width: 35%;
+    height: auto;
+    margin: 20px 0;
+}
+
+a {
+    color: #1db954; /* Spotify green for the email link */
+    text-decoration: none; /* Remove underline */
+}
+
+a:hover {
+    text-decoration: underline; /* Underline on hover for better visibility */
+}
+
+.dashboard-button {
+    margin-top: 20px; /* Space above the button */
+    padding: 10px 20px; /* Padding for the button */
+    font-size: 1rem; /* Font size */
+    color: white; /* Text color */
+    background-color: #1db954; /* Spotify green */
+    border: none; /* No border */
+    border-radius: 5px; /* Rounded corners */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: background-color 0.3s; /* Smooth transition for hover effect */
+}
+
+.dashboard-button:hover {
+    background-color: #1aa34a; /* Darker green on hover */
+}

@@ -1,0 +1,131 @@
+.auth-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(8, 11, 22, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.auth-dialog-content {
+    background: #fff;
+    padding: 40px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+}
+
+.close-button {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.auth-dialog-content h1 {
+    text-align: center;
+    color: #1a1f36;
+    margin-bottom: 30px;
+    font-size: 24px;
+}
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #e6e8eb;
+}
+
+.tab-button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+    color: #008cc8;
+    border-bottom: 2px solid #008cc8;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    color: #1a1f36;
+    font-size: 14px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e6e8eb;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.password-input-wrapper {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #666;
+}
+
+.submit-button {
+    background-color: #008cc8;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+    background-color: #007ab0;
+}
+
+.forgot-password {
+    background: none;
+    border: none;
+    color: #008cc8;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    text-align: center;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}

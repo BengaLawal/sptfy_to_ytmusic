@@ -1,0 +1,109 @@
+/* Nav.css */
+.navbar {
+    background-color: #1a1a1a;
+    padding: 1rem 2rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.nav-logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1db954;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.nav-logo:hover {
+    color: #3182ce;
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.user-email {
+    color: #cbd5e0;
+    font-size: 0.9rem;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.login-button,
+.sign-out-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.login-button {
+    background-color: #1db954;
+    color: white;
+    border: none;
+}
+
+.login-button:hover {
+    background-color: #3182ce;
+}
+
+.sign-out-button {
+    background-color: transparent;
+    color: #cbd5e0;
+    border: 1px solid #4a5568;
+}
+
+.sign-out-button:hover {
+    background-color: #2d3748;
+    border-color: #4299e1;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem;
+    }
+
+    .nav-container {
+        padding: 0 1rem;
+    }
+
+    .nav-content {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.5rem;
+    }
+
+    .user-email {
+        font-size: 0.8rem;
+    }
+
+    .nav-buttons {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+.authenticator form {
+    width: 100%;
+}

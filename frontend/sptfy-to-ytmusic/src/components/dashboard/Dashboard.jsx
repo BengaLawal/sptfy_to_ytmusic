@@ -11,12 +11,12 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { checkUserAuth, handleUserSignOut } from '../handlers/authHandlers';
-import { handleYouTubeMusicAuth } from '../handlers/youtubeAuthHandler';
-import { handleSpotifyAuthentication, fetchSpotifyPlaylists } from '../handlers/spotifyAuthHandler';
-import { isLoggedIntoSpotify } from '../api/spotifyApi';
-import {isLoggedIntoYtMusic} from "../api/ytmusicApi.jsx";
-import '../styles/dashboard.css';
+import { checkUserAuth, handleUserSignOut } from '../../handlers/authHandlers.jsx';
+import { handleYouTubeMusicAuth } from '../../handlers/youtubeAuthHandler.jsx';
+import { handleSpotifyAuthentication, fetchSpotifyPlaylists } from '../../handlers/spotifyAuthHandler.jsx';
+import {initiateSpotifyTransferToYtmusic, isLoggedIntoSpotify} from '../../api/spotifyApi.jsx';
+import {isLoggedIntoYtMusic} from "../../api/ytmusicApi.jsx";
+import './Dashboard.css';
 
 /**
  * Dashboard functional component
@@ -24,9 +24,8 @@ import '../styles/dashboard.css';
  * @returns {JSX.Element} The rendered Dashboard component
  */
 const Dashboard = () => {
-    const navigate = useNavigate();
-
     // State management
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);                                   // Current authenticated user
     const [userAttributes, setUserAttributes] = useState(null);               // User profile attributes
     const [loading, setLoading] = useState(true);                            // Loading state flag
@@ -36,6 +35,10 @@ const Dashboard = () => {
     const [selectedPlaylists, setSelectedPlaylists] = useState([]);          // Selected playlists for transfer
     const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);      // Currently viewed playlist
     const [error, setError] = useState(null);                               // Error state
+
+    if (!user) {
+        navigate("/")
+    }
 
     useEffect(() => {
         const initializeDash = async () => {
@@ -156,6 +159,23 @@ const Dashboard = () => {
         });
     };
 
+    const handleTransferPlaylists = async () => {
+        try {
+            setLoading(true);
+            const response = await initiateSpotifyTransferToYtmusic(selectedPlaylists)
+            console.log(response);
+
+            // const data = await response.json();
+            // Optionally, you can show a success message or update the UI
+        } catch (error) {
+            setError('Error transferring playlists');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     // Loading state render
     if (loading) {
         return <div className="loading-container">Loading...</div>;
@@ -169,27 +189,15 @@ const Dashboard = () => {
     // Main dashboard render
     return (
         <div className="dashboard-container">
-            <nav className="dashboard-nav">
-                <div className="nav-content">
-                    <div className="nav-left">
-                        <h1>Welcome to Your Dashboard</h1>
-                        <h2>Hello, {userAttributes?.name}!</h2>
-                    </div>
-                    <button onClick={handleSignOut} className="signout-button">
-                        Sign Out
-                    </button>
-                </div>
-            </nav>
-
             <div className="service-buttons">
                 <button onClick={handleSpotifyAuth}
-                        className={`service-button spotify-button ${spotifyConnected ? 'connected' : ''}`}
+                        className="dashboard-button"
                         disabled={spotifyConnected}>
                     {spotifyConnected ? 'Connected to Spotify' : 'Connect Spotify'}
                 </button>
 
                 <button onClick={handleYouTubeAuth}
-                        className={`service-button youtube-button ${youtubeConnected ? 'connected' : ''}`}
+                        className="dashboard-button"
                         disabled={youtubeConnected}>
                     {youtubeConnected ? 'Connected to YouTube Music' : 'Connect YouTube Music'}
                 </button>
@@ -205,7 +213,7 @@ const Dashboard = () => {
                                     <div
                                         key={playlist.id}
                                         className={`playlist-tile ${selectedPlaylists.includes(playlist.id) ? 'selected' : ''}`}
-                                        onClick={() => handlePlaylistView(playlist.id)} // handle tile click
+                                        onClick={() => handlePlaylistView(playlist.id)}
                                     >
                                         <div className="playlist-select"
                                              onClick={(e) => {
@@ -257,7 +265,7 @@ const Dashboard = () => {
                 {/* Transfer Button Section */}
                 {spotifyConnected && youtubeConnected && selectedPlaylists.length > 0 && (
                     <div className="transfer-section">
-                        <button className="transfer-button">
+                        <button onClick={handleTransferPlaylists} className="transfer-button">
                             Transfer Playlist
                         </button>
                     </div>

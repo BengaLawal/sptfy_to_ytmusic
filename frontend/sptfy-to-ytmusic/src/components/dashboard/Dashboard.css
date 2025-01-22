@@ -1,0 +1,230 @@
+/* styles/dashboard.css */
+
+:root {
+    --spotify-green: #1db954;
+    --spotify-green-hover: #1aa34a;
+    --dark-bg: #121212;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --tile-max-width: 12rem
+}
+
+.dashboard-container {
+    margin-top: 3rem;
+}
+
+/* Base styles and resets */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Dashboard Container */
+.dashboard-container {
+    background-color: var(--dark-bg);
+    color: white;
+    padding: var(--spacing-md);
+    width: 100%;
+    max-width: 100vw;
+    min-height: 100vh;
+}
+
+/* Navigation */
+.dashboard-nav {
+    background-color: rgba(29, 185, 84, 0.1);
+    padding: var(--spacing-md);
+    width: 100%;
+}
+
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+/* Dashboard Layout */
+.dashboard-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+@media (min-width: 48rem) {
+    .dashboard-layout {
+        flex-direction: row;
+    }
+}
+
+/* Playlists Section */
+.playlists-section {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Selected Playlist Section */
+.selected-playlist-section {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (min-width: 48rem) {
+    .selected-playlist-section {
+        margin-left: var(--spacing-lg);
+    }
+}
+
+/* Grid Layout for Playlists */
+.playlists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 6rem), 1fr));
+    gap: 0.75rem;
+    padding: 0.5rem;
+}
+
+/* Individual Playlist Tile */
+.playlist-tile {
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.playlist-tile:hover {
+    transform: scale(1.02);
+}
+
+/* Playlist Image */
+.playlist-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+
+/* Playlist Name */
+.playlist-name {
+    margin: var(--spacing-sm) 0;
+    font-size: 0.875rem;
+    padding: 0 var(--spacing-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Playlist Select Checkbox */
+.playlist-select {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    z-index: 2;
+}
+
+.playlist-select input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    accent-color: var(--spotify-green);
+}
+
+/* Scrollable Container */
+.playlists-scrollable {
+    max-height: 80vh;
+    overflow-y: auto;
+    padding-right: var(--spacing-sm);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.playlists-scrollable::-webkit-scrollbar {
+    display: none;
+}
+
+/* Transfer Section */
+.transfer-section {
+    margin-top: var(--spacing-lg);
+    text-align: center;
+}
+
+.transfer-button {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background-color: var(--spotify-green);
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+    width: 100%;
+    max-width: 20rem;
+}
+
+@media (min-width: 48rem) {
+    .transfer-button {
+        width: auto;
+    }
+}
+
+.transfer-button:hover {
+    background-color: var(--spotify-green-hover);
+}
+
+/* Error Message */
+.error-message {
+    color: #dc3545;
+    text-align: center;
+    margin-top: var(--spacing-md);
+}
+
+/* Service Buttons */
+.service-buttons {
+    margin: var(--spacing-md) 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: center;
+}
+
+.service-button {
+    flex: 1;
+    min-width: 8rem;
+    max-width: 12rem;
+}
+
+.dashboard-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    color: white;
+    background-color: #1db954;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.dashboard-button:hover {
+    background-color: #1aa34a;
+}
+
+.service-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+h3 {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}

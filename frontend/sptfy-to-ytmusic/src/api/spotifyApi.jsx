@@ -49,3 +49,16 @@ export const fetchPlaylists = async () => {
     const [user] = await getUserAndAuth();
     return makeAuthenticatedRequest(`/spotify/playlists/${user.userId}`);
 };
+
+/**
+ * Initiates the transfer of a playlist to YouTube Music
+ * @param {string} selectedPlaylists - The Spotify playlist ID to transfer
+ * @returns {Promise<Response>} The API response
+ */
+export const initiateSpotifyTransferToYtmusic = async (selectedPlaylists ) => {
+    const [user] = await getUserAndAuth();
+    return makeAuthenticatedRequest(`/transfer/sptfy-to-ytmusic`, {
+        method: 'POST',
+        body: JSON.stringify({ playlistIds: selectedPlaylists, userId: user.userId  })
+    })
+};

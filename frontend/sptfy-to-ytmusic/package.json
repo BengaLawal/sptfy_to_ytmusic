@@ -11,19 +11,28 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.7.2",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-slot": "^1.1.1",
     "aws-amplify": "^6.11.0",
     "axios": "^1.7.9",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.473.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.1.0"
+    "react-router-dom": "^7.1.0",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@aws-amplify/backend": "^1.11.0",
     "@aws-amplify/backend-cli": "^1.4.5",
     "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.7",
     "@types/react": "^18.3.17",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
     "aws-cdk": "^2.173.2",
     "aws-cdk-lib": "^2.173.2",
     "constructs": "^10.4.2",
@@ -33,6 +42,8 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.13.0",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"

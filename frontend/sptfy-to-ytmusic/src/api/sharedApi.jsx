@@ -2,6 +2,7 @@
 import { fetchAuthSession, getCurrentUser } from "aws-amplify/auth";
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL
+// const BASE_URL = 'https://1c99dvz6y4.execute-api.eu-west-1.amazonaws.com/Prod'
 
 /**
  * Gets the authentication header using AWS Amplify session
