@@ -1,0 +1,241 @@
+/* TransferStyles.css */
+:root {
+    --primary-color: #28a745;
+    --secondary-color: #6c757d;
+    --spotify-green: #1DB954;
+    --youtube-red: #FF0000;
+    --light-bg: #f8f9fa;
+    --hover-scale: 1.03;
+}
+
+.transfer-container {
+    max-width: 90%;
+    width: 100%;
+    margin: 3rem auto;
+    padding: 1.25rem;
+}
+
+.transfer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.back-button {
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 0 0.625rem;
+}
+
+.step-indicator {
+    font-weight: bold;
+    color: var(--secondary-color);
+}
+
+.platform-grid {
+    display: grid;
+    /*grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));*/
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.platform-card {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.platform-card:hover {
+    transform: scale(var(--hover-scale));
+}
+
+.platform-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.platform-icon {
+    font-size: 4rem;
+    margin-bottom: 0.4rem;
+}
+
+.platform-name {
+    text-align: center;
+    font-weight: bold;
+}
+
+.spotify-bg {
+    background-color: var(--spotify-green);
+    color: white;
+}
+
+.youtube-bg {
+    background-color: var(--youtube-red);
+    color: white;
+}
+
+.playlist-grid {
+    display: grid;
+    /*grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));*/
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.playlist-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    max-width: 100%;
+}
+
+.playlist-card:hover {
+    transform: scale(var(--hover-scale));
+}
+
+.playlist-selected {
+    border: 0.125rem solid var(--primary-color);
+    background-color: var(--light-bg);
+}
+
+.playlist-check {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    color: var(--primary-color);
+}
+
+.playlist-name {
+    font-weight: bold;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.playlist-tracks {
+    color: var(--secondary-color);
+    font-size: 0.8rem;
+}
+
+.playlist-footer {
+    margin-top: 1.25rem;
+    text-align: center;
+}
+
+.transfer-details {
+    max-width: 95%;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.transfer-platforms-body {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.625rem;
+}
+
+.transfer-icon {
+    font-size: 2rem;
+    color: var(--secondary-color);
+}
+
+.transfer-details-title {
+    margin-bottom: 0.9375rem;
+    text-align: center;
+}
+
+.selected-playlists {
+    margin-top: 0.9375rem;
+}
+
+.playlist-item {
+    background-color: var(--light-bg);
+    padding: 0.5rem;
+    margin: 0.3125rem 0;
+    border-radius: 0.25rem;
+}
+
+.start-transfer-btn {
+    width: 100%;
+    margin-top: 0.9375rem;
+}
+
+.login-status {
+    position: absolute;
+    bottom: 0.625rem;
+    right: 0.625rem;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.playlist-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    margin-bottom: 0.625rem;
+}
+
+/* Spotify Embed Styles */
+.selected-playlist-section {
+    width: 90%;
+    max-width: 800px;
+    margin: 1rem auto;
+    padding: 1rem;
+    background-color: var(--light-bg);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.spotify-embed-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.embed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.close-embed-button {
+    background: none;
+    border: none;
+    color: var(--secondary-color);
+    cursor: pointer;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.close-embed-button:hover {
+    color: #dc3545;
+}
+
+.selected-playlists-section .playlist-image {
+    width: 50%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    margin-bottom: 0.625rem;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 768px) {
+    .playlist-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
+
+    .transfer-container,
+    .transfer-details {
+        max-width: 100%;
+        padding: 0.625rem;
+    }
+}

@@ -50,7 +50,7 @@ const AuthDialog = ({ isOpen, onClose }) => {
 
             if (isSignedIn) {
                 onClose();
-                navigate('/dashboard');
+                navigate('/transfer');
             }
         } catch (error) {
             setFormState(prev => ({ ...prev, error: error.message }));
@@ -119,7 +119,7 @@ const AuthDialog = ({ isOpen, onClose }) => {
             if (isSignedIn) {
                 setFormState(prev => ({ ...prev, showVerification: false }));
                 onClose();
-                navigate('/dashboard');
+                navigate('/transfer');
             }
         } catch (error) {
             setFormState(prev => ({ ...prev, error: error.message }));
@@ -165,7 +165,7 @@ const AuthDialog = ({ isOpen, onClose }) => {
                         isSignIn: true
                     }));
                     onClose();
-                    navigate('/dashboard');
+                    navigate('/transfer');
                 } else {
                     throw new Error('Unable to sign in after password reset');
                 }

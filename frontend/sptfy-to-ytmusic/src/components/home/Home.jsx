@@ -21,8 +21,7 @@ function Home() {
 
     const handleGetStartedClick = () => {
         if (authStatus === 'authenticated') {
-            // Navigate to dashboard if logged in
-            navigate('/dashboard');
+            navigate('/transfer');
         } else {
             setShowAuthDialog(true);
         }
@@ -47,7 +46,7 @@ function Home() {
                                 Get Started
                             </Button>
                         </Col>
-                        <Col md={6} className="d-flex justify-content-center align-items-end">
+                        <Col md={6} className="d-flex justify-content-center align-items-end" onClick={handleGetStartedClick}>
                             <Lottie
                                 animationData={animationData}
                                 loop={true}

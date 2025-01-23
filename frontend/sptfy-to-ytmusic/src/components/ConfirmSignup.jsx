@@ -58,7 +58,7 @@ const ConfirmSignup = () => {
                     });
 
                     if (signInResponse.isSignedIn) {
-                        navigate('/dashboard');
+                        navigate('/transfer');
                         return;
                     }
                 } catch (signInError) {

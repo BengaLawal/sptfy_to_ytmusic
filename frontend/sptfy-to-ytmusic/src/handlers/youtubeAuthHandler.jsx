@@ -7,12 +7,11 @@ const MAX_RETRIES = 60;
 
 /**
  * Handles the YouTube Music authentication flow
- * @param {Function} setLoading - Function to set loading state
  * @param {Function} setYoutubeConnected - Function to set YouTube connection state
  * @returns {Promise<boolean>} True if authentication successful, false otherwise
  * @throws {Error} If authentication fails or popup is blocked
  */
-export const handleYouTubeMusicAuth = async (setLoading, setYoutubeConnected) => {
+export const handleYouTubeMusicAuth = async (setYoutubeConnected) => {
     try {
         const response = await isLoggedIntoYtMusic();
 
@@ -21,7 +20,6 @@ export const handleYouTubeMusicAuth = async (setLoading, setYoutubeConnected) =>
             return true;
         }
 
-        setLoading(true);
         const authResponse = await loginYtmusic();
         const { verification_url, device_code, interval } = authResponse;
 
@@ -34,7 +32,6 @@ export const handleYouTubeMusicAuth = async (setLoading, setYoutubeConnected) =>
 
         if (success) {
             setYoutubeConnected(true);
-            window.location.href = '/dashboard';
             return true;
         }
 
@@ -43,8 +40,6 @@ export const handleYouTubeMusicAuth = async (setLoading, setYoutubeConnected) =>
         console.error('YouTube Music authentication error:', error);
         setYoutubeConnected(false);
         throw error;
-    } finally {
-        setLoading(false);
     }
 };
 

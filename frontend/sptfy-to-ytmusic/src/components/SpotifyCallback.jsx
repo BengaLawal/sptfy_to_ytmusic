@@ -20,8 +20,8 @@ const SpotifyCallback = () => {
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const navigateToDashboard = useCallback((state) => {
-        navigate('/dashboard', {
+    const navigateToTransfer = useCallback((state) => {
+        navigate('/transfer', {
             state: {
                 ...state,
                 timestamp: Date.now()
@@ -69,7 +69,7 @@ const SpotifyCallback = () => {
                 const result = await processCallback(code);
 
                 if (mounted) {
-                    navigateToDashboard(result);
+                    navigateToTransfer(result);
                 }
 
             } catch (error) {
@@ -81,7 +81,7 @@ const SpotifyCallback = () => {
                     // Automatically redirect to dashboard after error
                     setTimeout(() => {
                         if (mounted) {
-                            navigateToDashboard({
+                            navigateToTransfer({
                                 spotifyError: error.message
                             });
                         }
@@ -100,7 +100,7 @@ const SpotifyCallback = () => {
         return () => {
             mounted = false;
         };
-    }, [navigateToDashboard, processCallback]);
+    }, [navigateToTransfer, processCallback]);
 
     // Show error state if connection failed
     if (error) {

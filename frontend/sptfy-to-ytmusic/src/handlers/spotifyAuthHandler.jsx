@@ -3,17 +3,15 @@ import { loginSpotify, fetchPlaylists, isLoggedIntoSpotify } from '../api/spotif
 /**
  * Handles Spotify authentication flow
  * @param {Function} setSpotifyConnected - Callback to update Spotify connection state
- * @param {Function} fetchPlaylistsData - Callback to fetch playlists after successful auth
  * @returns {Promise<void>}
  * @throws {Error} If authentication fails
  */
-export const handleSpotifyAuthentication = async (setSpotifyConnected, fetchPlaylistsData) => {
+export const handleSpotifyAuthentication = async (setSpotifyConnected) => {
     try {
         const response = await isLoggedIntoSpotify();
 
         if (response.isLoggedIn) {
             setSpotifyConnected(true);
-            await fetchPlaylistsData();
             return;
         }
 
