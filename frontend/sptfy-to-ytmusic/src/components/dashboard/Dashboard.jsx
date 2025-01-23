@@ -36,10 +36,6 @@ const Dashboard = () => {
     const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);      // Currently viewed playlist
     const [error, setError] = useState(null);                               // Error state
 
-    if (!user) {
-        navigate("/")
-    }
-
     useEffect(() => {
         const initializeDash = async () => {
             try {
