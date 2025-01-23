@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import { useAuthenticator } from '@aws-amplify/ui-react';
-import { signOut } from 'aws-amplify/auth';
-import './Nav.css';
-import AuthDialog from '../auth/AuthDialog';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuthenticator } from "@aws-amplify/ui-react";
+import { signOut } from "aws-amplify/auth";
+import "./Nav.css";
+import AuthDialog from "../auth/AuthDialog";
 
 const Nav = () => {
     const navigate = useNavigate();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const { user, authStatus } = useAuthenticator((context) => [
         context.user,
-        context.authStatus
+        context.authStatus,
     ]);
 
     const handleLoginSignupClick = () => {
@@ -24,10 +25,14 @@ const Nav = () => {
     const handleSignOut = async () => {
         try {
             await signOut();
-            navigate("/")
+            navigate("/");
         } catch (error) {
-            console.error('Error signing out:', error);
+            console.error("Error signing out:", error);
         }
+    };
+
+    const toggleMenu = () => {
+        setMenuOpen(!menuOpen);
     };
 
     return (
@@ -36,11 +41,20 @@ const Nav = () => {
                 <Link to="/" className="nav-logo">
                     PlayShift
                 </Link>
-                <div className="nav-content">
+                <button
+                    className="menu-toggle"
+                    aria-label="Toggle navigation"
+                    onClick={toggleMenu}
+                >
+                    &#9776;
+                </button>
+                <div className={`nav-content ${menuOpen ? "open" : ""}`}>
                     <div className="nav-buttons">
-                        {authStatus === 'authenticated' ? (
+                        {authStatus === "authenticated" ? (
                             <>
-                                <span className="user-email">{user?.attributes?.email}</span>
+                                <span className="user-email">
+                                    {user?.attributes?.email}
+                                </span>
                                 <button
                                     className="sign-out-button"
                                     onClick={handleSignOut}
@@ -59,10 +73,7 @@ const Nav = () => {
                     </div>
                 </div>
             </div>
-            <AuthDialog
-                isOpen={isDialogOpen}
-                onClose={handleCloseDialog}
-            />
+            <AuthDialog isOpen={isDialogOpen} onClose={handleCloseDialog} />
         </nav>
     );
 };

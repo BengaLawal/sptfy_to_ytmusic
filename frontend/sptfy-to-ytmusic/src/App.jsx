@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Nav from "./components/nav/Nav.jsx";
-import Home from "./components/home/Home.jsx";
-import Dashboard from "./components/dashboard/Dashboard.jsx";
+import Nav from "@/components/nav/Nav.jsx";
+import Home from "@/components/home/Home.jsx";
+import Dashboard from "@/components/dashboard/Dashboard.jsx";
 import { Amplify } from 'aws-amplify';
 import { Authenticator } from "@aws-amplify/ui-react";
 import '@aws-amplify/ui-react/styles.css';
@@ -28,7 +28,7 @@ function App() {
                 <div className="main-content">
                     <Routes>
                         <Route path="/" element={<Home />}/>
-                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/dashboard" element={<Dashboard />}/>
                     </Routes>
                 </div>
             </Router>

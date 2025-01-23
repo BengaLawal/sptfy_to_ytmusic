@@ -61,9 +61,7 @@ const Dashboard = () => {
                 setLoading(false);
             }
         };
-
-        initializeDash();
-    }, []);
+        }, []);
 
     /**
      * Checks user authentication status

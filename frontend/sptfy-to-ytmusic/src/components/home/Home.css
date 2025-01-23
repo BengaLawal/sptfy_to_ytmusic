@@ -1,52 +1,118 @@
 .home {
+    font-family: Arial, sans-serif;
+}
+
+.hero {
+    background: #007bff;
+    color: white;
+    min-height: 100vh;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
-    height: 100vh;
+    justify-content: center;
+    padding: 0 5%;
+}
+
+.hero-container {
+    height: 100%;
+}
+
+.hero-title {
+    font-size: 2.5rem; /* Adjust font size for scaling */
+    margin-bottom: 1.5rem;
+}
+
+.hero-description {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+}
+
+.hero-button {
+    font-size: 1rem;
+    padding: 0.8rem 2rem;
+    margin-top: auto;
+}
+
+.hero .lottie {
+    max-width: 20%; /* Ensure it scales */
+    height: auto; /* Maintain aspect ratio */
+    margin-top: auto;
+}
+
+.features {
+    padding: 3rem 5%;
     text-align: center;
-    background-color: #121212;
-    padding: 20px;
-    color: #1db960;
 }
 
-.home h1 {
-    font-size: 2.5rem;
-    margin-bottom: 20px;
+.feature-icon {
+    color: #007bff;
+    margin-bottom: 1rem;
 }
 
-.home p {
-    font-size: 1.2rem;
-    margin: 10px 0;
+.feature-title {
+    font-size: 1.3rem;
+    margin-top: 0.5rem;
 }
 
-.home-image {
-    max-width: 35%;
-    height: auto;
-    margin: 20px 0;
+.platforms {
+    padding: 3rem 5%;
+    background: #f8f9fa;
+    text-align: center;
 }
 
-a {
-    color: #1db954; /* Spotify green for the email link */
-    text-decoration: none; /* Remove underline */
+.platform-icon {
+    color: #007bff;
+    transition: transform 0.3s;
 }
 
-a:hover {
-    text-decoration: underline; /* Underline on hover for better visibility */
+.platform-icon:hover {
+    transform: scale(1.2);
+    color: #0056b3;
 }
 
-.dashboard-button {
-    margin-top: 20px; /* Space above the button */
-    padding: 10px 20px; /* Padding for the button */
-    font-size: 1rem; /* Font size */
-    color: white; /* Text color */
-    background-color: #1db954; /* Spotify green */
-    border: none; /* No border */
-    border-radius: 5px; /* Rounded corners */
-    cursor: pointer; /* Pointer cursor on hover */
-    transition: background-color 0.3s; /* Smooth transition for hover effect */
+.footer {
+    background: #343a40;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
 }
 
-.dashboard-button:hover {
-    background-color: #1aa34a; /* Darker green on hover */
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-description {
+        font-size: 1rem;
+    }
+
+    .hero-button {
+        font-size: 0.9rem;
+        padding: 0.7rem 1.5rem;
+    }
+
+    .features, .platforms {
+        padding: 2rem 5%;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 1.8rem;
+    }
+
+    .hero-description {
+        font-size: 0.9rem;
+    }
+
+    .hero-button {
+        font-size: 0.8rem;
+        padding: 0.6rem 1.2rem;
+    }
+
+    .hero .lottie {
+        height: 200px;
+        width: auto;
+    }
 }

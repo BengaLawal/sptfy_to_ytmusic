@@ -6,11 +6,6 @@ applications:
           commands:
             - nvm install 20
             - nvm use 20
-            - export VITE_USER_POOL_ID=$VITE_USER_POOL_ID
-            - export VITE_IDENTITY_POOL_ID=$VITE_IDENTITY_POOL_ID
-            - export VITE_AUTH_ROLE_ARN=$VITE_AUTH_ROLE_ARN
-            - export VITE_UNAUTH_ROLE_ARN=$VITE_UNAUTH_ROLE_ARN
-            - export VITE_USER_POOL_CLIENT_ID=$VITE_USER_POOL_CLIENT_ID
 
         build:
           commands:

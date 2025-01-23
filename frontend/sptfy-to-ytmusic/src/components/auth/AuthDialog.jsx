@@ -1,19 +1,23 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signIn, signUp, confirmSignUp, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 import { useAuthenticator } from '@aws-amplify/ui-react';
 import './AuthDialog.css';
 
+// TODO: Fix Unrecognizable lambda output when trying to reset password
+
 const AuthDialog = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
     const { signIn: authenticatorSignIn } = useAuthenticator();
 
-    // Move all state to the top
     const [formState, setFormState] = useState({
         isSignIn: true,
         showPassword: false,
+        showConfirmPassword: false,
+        name: '',
         email: '',
         password: '',
+        confirmPassword: '',
         verificationCode: '',
         showVerification: false,
         resetPassword: false,
@@ -21,7 +25,6 @@ const AuthDialog = ({ isOpen, onClose }) => {
         error: ''
     });
 
-    // Define all callbacks at the top level
     const clearError = useCallback(() => {
         setFormState(prev => ({ ...prev, error: '' }));
     }, []);
@@ -57,6 +60,27 @@ const AuthDialog = ({ isOpen, onClose }) => {
     const handleSignUp = useCallback(async (e) => {
         e.preventDefault();
         clearError();
+
+        // Password validation
+        const hasUpperCase = /[A-Z]/.test(formState.password);
+        const hasLowerCase = /[a-z]/.test(formState.password);
+        const hasNumbers = /\d/.test(formState.password);
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formState.password);
+
+        // Additional validations
+        if (formState.password !== formState.confirmPassword) {
+            setFormState(prev => ({ ...prev, error: 'Passwords do not match' }));
+            return;
+        }
+
+        if (!(hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar)) {
+            setFormState(prev => ({
+                ...prev,
+                error: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+            }));
+            return;
+        }
+
         try {
             const { isSignUpComplete } = await signUp({
                 username: formState.email,
@@ -64,6 +88,7 @@ const AuthDialog = ({ isOpen, onClose }) => {
                 options: {
                     userAttributes: {
                         email: formState.email,
+                        name: formState.name
                     },
                     autoSignIn: true
                 }
@@ -75,7 +100,7 @@ const AuthDialog = ({ isOpen, onClose }) => {
         } catch (error) {
             setFormState(prev => ({ ...prev, error: error.message }));
         }
-    }, [formState.email, formState.password, clearError]);
+    }, [formState.email, formState.password, formState.name, formState.confirmPassword, clearError]);
 
     const handleVerification = useCallback(async (e) => {
         e.preventDefault();
@@ -116,22 +141,47 @@ const AuthDialog = ({ isOpen, onClose }) => {
         e.preventDefault();
         clearError();
         try {
+            // Confirm reset password first
             await confirmResetPassword({
                 username: formState.email,
                 confirmationCode: formState.verificationCode,
                 newPassword: formState.newPassword
             });
-            setFormState(prev => ({
-                ...prev,
-                resetPassword: false,
-                isSignIn: true
-            }));
+
+            // Attempt to sign in with new password
+            try {
+                const result = await signIn({
+                    username: formState.email,
+                    password: formState.newPassword
+                });
+
+                console.log('Sign in result:', result);
+
+                // Check if signed in
+                if (result.isSignedIn) {
+                    setFormState(prev => ({
+                        ...prev,
+                        resetPassword: false,
+                        isSignIn: true
+                    }));
+                    onClose();
+                    navigate('/dashboard');
+                } else {
+                    throw new Error('Unable to sign in after password reset');
+                }
+            } catch (signInError) {
+                console.error('Sign in error after reset:', signInError);
+                setFormState(prev => ({
+                    ...prev,
+                    error: `Failed to sign in: ${signInError.message}`
+                }));
+            }
+
         } catch (error) {
             setFormState(prev => ({ ...prev, error: error.message }));
         }
     }, [formState.email, formState.verificationCode, formState.newPassword, clearError]);
 
-    // Memoize all form renders
     const verificationForm = useMemo(() => (
         <form className="auth-form" onSubmit={handleVerification}>
             <div className="form-group">
@@ -192,18 +242,33 @@ const AuthDialog = ({ isOpen, onClose }) => {
             <div className="auth-tabs">
                 <button
                     className={`tab-button ${formState.isSignIn ? 'active' : ''}`}
-                    onClick={() => setFormState(prev => ({ ...prev, isSignIn: true }))}
+                    onClick={() => setFormState(prev => ({ ...prev, isSignIn: true, error: '' }))}
                 >
                     Sign In
                 </button>
                 <button
                     className={`tab-button ${!formState.isSignIn ? 'active' : ''}`}
-                    onClick={() => setFormState(prev => ({ ...prev, isSignIn: false }))}
+                    onClick={() => setFormState(prev => ({ ...prev, isSignIn: false, error: '' }))}
                 >
                     Create Account
                 </button>
             </div>
-            <form className="auth-form" onSubmit={formState.isSignIn ? handleSignIn : handleSignUp}>
+            <form
+                className="auth-form"
+                onSubmit={formState.isSignIn ? handleSignIn : handleSignUp}
+            >
+                {!formState.isSignIn && (
+                    <div className="form-group">
+                        <label>Name</label>
+                        <input
+                            type="text"
+                            className="auth-input"
+                            value={formState.name}
+                            onChange={handleInputChange('name')}
+                            required
+                        />
+                    </div>
+                )}
                 <div className="form-group">
                     <label>Email</label>
                     <input
@@ -233,6 +298,27 @@ const AuthDialog = ({ isOpen, onClose }) => {
                         </button>
                     </div>
                 </div>
+                {!formState.isSignIn && (
+                    <div className="form-group">
+                        <label>Confirm Password</label>
+                        <div className="password-input-wrapper">
+                            <input
+                                type={formState.showConfirmPassword ? "text" : "password"}
+                                className="auth-input"
+                                value={formState.confirmPassword}
+                                onChange={handleInputChange('confirmPassword')}
+                                required
+                            />
+                            <button
+                                className="toggle-password"
+                                onClick={() => setFormState(prev => ({ ...prev, showConfirmPassword: !prev.showConfirmPassword }))}
+                                type="button"
+                            >
+                                {formState.showConfirmPassword ? "🐵" : "🙈️"}
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <button type="submit" className="submit-button">
                     {formState.isSignIn ? 'Sign in' : 'Create Account'}
                 </button>
@@ -250,8 +336,11 @@ const AuthDialog = ({ isOpen, onClose }) => {
     ), [
         formState.isSignIn,
         formState.showPassword,
+        formState.showConfirmPassword,
+        formState.name,
         formState.email,
         formState.password,
+        formState.confirmPassword,
         handleSignIn,
         handleSignUp,
         handleForgotPassword,

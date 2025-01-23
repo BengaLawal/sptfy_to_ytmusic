@@ -1,7 +1,18 @@
-/* Nav.css */
+/* Root variables for consistent theming */
+:root {
+    --primary-color: #1db954;
+    --secondary-color: #3182ce;
+    --text-color: #cbd5e0;
+    --background-color: #1a1a1a;
+    --hover-background: #2d3748;
+    --hover-border: #4299e1;
+    --transition-speed: 0.3s;
+    --padding: 1rem;
+}
+
 .navbar {
-    background-color: #1a1a1a;
-    padding: 1rem 2rem;
+    background-color: var(--background-color);
+    padding: var(--padding) 2rem;
     position: fixed;
     top: 0;
     left: 0;
@@ -17,29 +28,35 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 0 1rem;
 }
 
 .nav-logo {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #1db954;
+    color: var(--primary-color);
     text-decoration: none;
-    transition: color 0.3s ease;
+    transition: color var(--transition-speed);
 }
 
 .nav-logo:hover {
-    color: #3182ce;
+    color: var(--secondary-color);
 }
 
 .nav-content {
     display: flex;
     align-items: center;
     gap: 1.5rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.nav-content.open {
+    display: block;
+    flex-direction: column;
+    align-items: flex-end;
 }
 
 .user-email {
-    color: #cbd5e0;
+    color: var(--text-color);
     font-size: 0.9rem;
 }
 
@@ -55,40 +72,60 @@
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-speed) ease;
 }
 
 .login-button {
-    background-color: #1db954;
+    background-color: var(--primary-color);
     color: white;
     border: none;
 }
 
 .login-button:hover {
-    background-color: #3182ce;
+    background-color: var(--secondary-color);
 }
 
 .sign-out-button {
     background-color: transparent;
-    color: #cbd5e0;
+    color: var(--text-color);
     border: 1px solid #4a5568;
 }
 
 .sign-out-button:hover {
-    background-color: #2d3748;
-    border-color: #4299e1;
+    background-color: var(--hover-background);
+    border-color: var(--hover-border);
+}
+
+/* Hamburger menu for small screens */
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.menu-toggle:focus {
+    outline: none;
 }
 
 @media (max-width: 768px) {
-    .navbar {
-        padding: 1rem;
-    }
-
-    .nav-container {
-        padding: 0 1rem;
+    .menu-toggle {
+        display: block;
     }
 
     .nav-content {
+        display: none;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .nav-content.open {
+        display: flex;
+    }
+
+    .nav-buttons {
         flex-direction: column;
         align-items: flex-end;
         gap: 0.5rem;
@@ -97,13 +134,4 @@
     .user-email {
         font-size: 0.8rem;
     }
-
-    .nav-buttons {
-        width: 100%;
-        justify-content: flex-end;
-    }
-}
-
-.authenticator form {
-    width: 100%;
 }
