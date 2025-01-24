@@ -24,7 +24,7 @@ export const loginYtmusic = async () => {
  * @returns {Promise<Object>} Response from polling endpoint
  * @throws {Error} If polling request fails
  */
-export const pollInterval = async (device_code) => {
+export const pollYtMusicAuthStatus = async (device_code) => {
     const [user] = await getUserAndAuth();
     return makeAuthenticatedRequest('/ytmusic/poll-token', {
         method: 'POST',

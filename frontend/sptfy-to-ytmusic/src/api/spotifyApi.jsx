@@ -62,3 +62,14 @@ export const initiateSpotifyTransferToYtmusic = async (selectedPlaylists ) => {
         body: JSON.stringify({ playlistIds: selectedPlaylists, userId: user.userId  })
     })
 };
+
+export const checkTransferStatus = async (transferId) => {
+    const [user] = await getUserAndAuth();
+    return makeAuthenticatedRequest(`/transfer/status`, {
+        method: 'POST',
+        body: JSON.stringify({
+            transfer_id: transferId,
+            user_id: user.userId
+        })
+    });
+};

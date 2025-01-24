@@ -1,4 +1,4 @@
-import { loginYtmusic, pollInterval, isLoggedIntoYtMusic } from '../api/ytmusicApi';
+import { loginYtmusic, pollYtMusicAuthStatus, isLoggedIntoYtMusic } from '../api/ytmusicApi';
 
 /**
  * Maximum number of polling attempts before timing out
@@ -54,7 +54,7 @@ const pollForYouTubeToken = async (device_code, interval) => {
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
-        const tokenStatus = await pollInterval(device_code);
+        const tokenStatus = await pollYtMusicAuthStatus(device_code);
 
         if (tokenStatus.status === 'completed') {
             return true;

@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Nav from "@/components/nav/Nav.jsx";
 import Home from "@/components/home/Home.jsx";
-import Transfer from "@/components/transfer/Transfer.jsx";
+import TransferFlow from "@/components/transfer/Transfer.jsx";
 import SpotifyCallback from "@/components/SpotifyCallback.jsx";
 import { Amplify } from 'aws-amplify';
 import { Authenticator } from "@aws-amplify/ui-react";
@@ -44,7 +44,7 @@ function App() {
                 <div className="main-content">
                     <Routes>
                         <Route path="/" element={<Home />}/>
-                        <Route path="/transfer" element={<Transfer />}/>
+                        <Route path="/transfer" element={<TransferFlow />}/>
                         <Route path="/spotify/callback" element={<SpotifyCallback />} />
                         <Route path="*" element={notFound()} />
                     </Routes>

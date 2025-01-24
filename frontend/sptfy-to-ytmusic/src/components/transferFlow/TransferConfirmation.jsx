@@ -11,9 +11,11 @@ const TransferConfirmation = ({
                                   onStartTransfer,
                                   onBack,
                                   step,
-                                  totalSteps
+                                  totalSteps,
+                                  onResetTransfer
                               }) => {
     const [isTransferring, setIsTransferring] = useState(false);
+    const [transferComplete, setTransferComplete] = useState(false);
     const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
 
 
@@ -21,11 +23,16 @@ const TransferConfirmation = ({
         setIsTransferring(true);
         try {
             await onStartTransfer();
+            setTransferComplete(true);
         } catch (error) {
             console.error('Transfer failed', error);
         } finally {
             setIsTransferring(false);
         }
+    };
+
+    const handleTransferAnother = () => {
+        onResetTransfer();
     };
 
     const handlePlaylistClick = (playlist) => {
@@ -38,7 +45,14 @@ const TransferConfirmation = ({
         <>
             <div className="transfer-container">
                 <div className="transfer-header">
-                    <span className="back-button" onClick={onBack}>
+                    <span
+                        className={`back-button ${transferComplete ? 'disabled' : ''}`}
+                        onClick={transferComplete ? null : onBack}
+                        style={{
+                            cursor: transferComplete ? 'not-allowed' : 'pointer',
+                            opacity: transferComplete ? 0.5 : 1
+                        }}
+                    >
                         &lt;
                     </span>
                     <h2>Confirm Transfer</h2>
@@ -86,14 +100,24 @@ const TransferConfirmation = ({
                         </div>
                     </div>
 
-                    <Button
-                        variant="primary"
-                        className="start-transfer-btn"
-                        disabled={isTransferring}
-                        onClick={startTransfer}
-                    >
-                        {isTransferring ? 'Transferring...' : 'Start Transfer'}
-                    </Button>
+                    {!transferComplete ? (
+                        <Button
+                            variant="primary"
+                            className="start-transfer-btn"
+                            disabled={isTransferring}
+                            onClick={startTransfer}
+                        >
+                            {isTransferring ? 'Transferring...' : 'Start Transfer'}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="success"
+                            className="start-transfer-btn"
+                            onClick={handleTransferAnother}
+                        >
+                            Transfer Another
+                        </Button>
+                    )}
                 </div>
             </div>
 
