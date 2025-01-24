@@ -22,6 +22,21 @@ Amplify.configure({
 });
 
 function App() {
+
+    const notFound = () => {
+        return ( <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
+            textAlign: 'center'
+        }}>
+            <h1>404 - Page Not Found</h1>
+            <p>The page you're looking for doesn't exist.</p>
+        </div>);
+    };
+
     return (
         <Authenticator.Provider>
             <Router>
@@ -31,6 +46,7 @@ function App() {
                         <Route path="/" element={<Home />}/>
                         <Route path="/transfer" element={<Transfer />}/>
                         <Route path="/spotify/callback" element={<SpotifyCallback />} />
+                        <Route path="*" element={notFound()} />
                     </Routes>
                 </div>
             </Router>
