@@ -76,13 +76,6 @@ const TransferConfirmation = ({
                                     }}
                                 >
                                     <Card.Body className="playlist-card-body">
-                                        {playlist.images && playlist.images.length > 0 && (
-                                            <img
-                                                src={playlist.images[0].url}
-                                                alt={playlist.name}
-                                                className="playlist-image"
-                                            />
-                                        )}
                                         <div>
                                             <h3 className="playlist-name">{playlist.name}</h3>
                                             <p className="playlist-tracks">{playlist.tracks.total} tracks</p>

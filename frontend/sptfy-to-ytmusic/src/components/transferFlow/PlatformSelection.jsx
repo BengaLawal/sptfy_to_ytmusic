@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Card, Button, Spinner} from 'react-bootstrap';
+import {Card, Button, Spinner, Alert} from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpotify, faYoutube } from "@fortawesome/free-brands-svg-icons";
 import { handleSpotifyAuthentication, fetchSpotifyPlaylists } from '../../handlers/spotifyAuthHandler.jsx';
@@ -12,7 +12,6 @@ const PLATFORMS = [
         id: 'spotify',
         name: 'Spotify',
         icon: <FontAwesomeIcon icon={faSpotify} className="platform-icon" />,
-        color: 'spotify-bg',
         availableAs: {
             source: true,
             destination: true
@@ -22,7 +21,6 @@ const PLATFORMS = [
         id: 'ytmusic',
         name: 'YouTube Music',
         icon: <FontAwesomeIcon icon={faYoutube} className="platform-icon" />,
-        color: 'youtube-bg',
         availableAs: {
             source: false,
             destination: true

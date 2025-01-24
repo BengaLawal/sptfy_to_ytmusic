@@ -42,6 +42,11 @@ function Home() {
                             <p className="hero-description">
                                 Seamlessly transfer your music playlists between Spotify, YouTube Music, and more.
                             </p>
+                            <p style={{ color: "red" }}>
+                                Please note that since this is a beta version, I am using a limited Spotify developer account. To allow you to use your Spotify account, I will need to add you to my user list. I've already applied for an extension, and it's now up to Spotify to respond.
+                            </p>
+                            <p><a href="#contact" style={{ color: "white", textDecoration: "underline" }}>Contact me to add you.</a></p>
+
                             <Button className="hero-button mt-4" variant="primary" onClick={handleGetStartedClick}>
                                 Get Started
                             </Button>
@@ -104,6 +109,11 @@ function Home() {
             <footer className="footer">
                 <Container>
                     <p>&copy; {new Date().getFullYear()} PlayShift. All rights reserved.</p>
+                    <div className="contact-info" id="contact">
+                        <h5>Contact Me</h5>
+                        <p>Email: <a href="gbengalawal99@gmail.com">gbengalawal99@gmail.com</a></p>
+                        <p>Phone: <a href="tel:+27608748530">+27 60-874-8530</a></p>
+                    </div>
                 </Container>
             </footer>
 
