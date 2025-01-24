@@ -154,20 +154,27 @@ def test_update_token_with_refresh(dynamodb_service):
 def test_update_transfer_details(dynamodb_service):
     """Test updating transfer details."""
     transfer_details = {
-        'source': 'spotify',
-        'destination': 'youtube',
-        'amount': 100.50,
-        'status': 'completed',
-        'metadata': {'user_info': {'id': 'test_user_1'}}
+        'transfer_id': 'transfer_123',
+        'user_id': 'test_user_1',
+        'timestamp_started': int(datetime.now(timezone.utc).timestamp()),
+        'status': 'in_progress',
+        'total_playlists': 3,
+        'total_tracks': 0,
+        'completed_playlists': 0,
+        'completed_tracks': 0,
+        'failed_playlists': 0,
+        'failed_tracks': 0,
+        'playlists': [],
+        'error_details': None
     }
 
     dynamodb_service.update_transfer_details('transfer_123', transfer_details)
 
-    # Retrieve and verify transfer details
     retrieved_details = dynamodb_service.get_transfer_details('transfer_123')
 
-    assert retrieved_details['source'] == 'spotify'
-    assert retrieved_details['destination'] == 'youtube'
-    assert retrieved_details['amount'] == 100.50
-    assert retrieved_details['status'] == 'completed'
-    assert retrieved_details['metadata']['user_info']['id'] == 'test_user_1'
+    assert retrieved_details['transfer_id'] == 'transfer_123'
+    assert retrieved_details['user_id'] == 'test_user_1'
+    assert retrieved_details['status'] == 'in_progress'
+    assert retrieved_details['total_playlists'] == 3
+    assert retrieved_details['playlists'] == []
+    assert retrieved_details['error_details'] is None
