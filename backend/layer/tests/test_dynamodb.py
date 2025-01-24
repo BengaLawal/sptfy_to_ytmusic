@@ -1,9 +1,10 @@
 import pytest
 import boto3
 import os
+import decimal
 from moto import mock_aws
 from datetime import datetime, timezone
-from shared_utils.dynamodb import DynamoDBService  # Assuming the class is in dynamodb_service.py
+from shared_utils.dynamodb import DynamoDBService
 
 
 @pytest.fixture(scope='function')
@@ -17,14 +18,14 @@ def aws_credentials():
 
 
 @pytest.fixture(scope='function')
-def dynamodb_table(aws_credentials):
-    """Create a mock DynamoDB table."""
+def dynamodb_tables(aws_credentials):
+    """Create mock DynamoDB tables."""
     with mock_aws():
         dynamodb = boto3.resource('dynamodb')
 
-        # Create the mock table
-        table = dynamodb.create_table(
-            TableName='test_tokens',
+        # Create users table
+        users_table = dynamodb.create_table(
+            TableName='test_users',
             KeySchema=[
                 {'AttributeName': 'userid', 'KeyType': 'HASH'}
             ],
@@ -37,22 +38,37 @@ def dynamodb_table(aws_credentials):
             }
         )
 
+        # Create transfers table
+        transfer_table = dynamodb.create_table(
+            TableName='test_transfers',
+            KeySchema=[
+                {'AttributeName': 'transfer_id', 'KeyType': 'HASH'}
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'transfer_id', 'AttributeType': 'S'}
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 1,
+                'WriteCapacityUnits': 1
+            }
+        )
+
         # Create a test user
-        table.put_item(Item={
+        users_table.put_item(Item={
             'userid': 'test_user_1',
             'spotify_access_token': 'old_access_token',
             'spotify_refresh_token': 'old_refresh_token',
             'spotify_expires_at': int(datetime.now(timezone.utc).timestamp()) + 3600,
             'spotify_token_type': 'Bearer'
         })
-
-        yield table
+        yield users_table, transfer_table
 
 
 @pytest.fixture(scope='function')
-def dynamodb_service(dynamodb_table):
-    """Create a DynamoDBService instance with the mock table."""
-    return DynamoDBService('test_tokens')
+def dynamodb_service(dynamodb_tables):
+    """Create a DynamoDBService instance with mock tables."""
+    users_table, transfer_table = dynamodb_tables
+    return DynamoDBService('test_users', 'test_transfers')
 
 
 def test_get_tokens_success(dynamodb_service):
@@ -133,3 +149,25 @@ def test_update_token_with_refresh(dynamodb_service):
     updated_tokens = dynamodb_service.get_tokens('test_user_1', 'spotify')
     assert updated_tokens['spotify_access_token'] == 'updated_access_token'
     assert updated_tokens['spotify_refresh_token'] == 'updated_refresh_token'
+
+
+def test_update_transfer_details(dynamodb_service):
+    """Test updating transfer details."""
+    transfer_details = {
+        'source': 'spotify',
+        'destination': 'youtube',
+        'amount': 100.50,
+        'status': 'completed',
+        'metadata': {'user_info': {'id': 'test_user_1'}}
+    }
+
+    dynamodb_service.update_transfer_details('transfer_123', transfer_details)
+
+    # Retrieve and verify transfer details
+    retrieved_details = dynamodb_service.get_transfer_details('transfer_123')
+
+    assert retrieved_details['source'] == 'spotify'
+    assert retrieved_details['destination'] == 'youtube'
+    assert retrieved_details['amount'] == 100.50
+    assert retrieved_details['status'] == 'completed'
+    assert retrieved_details['metadata']['user_info']['id'] == 'test_user_1'
