@@ -51,11 +51,11 @@ function Home() {
                                 Get Started
                             </Button>
                         </Col>
-                        <Col md={6} className="d-flex justify-content-center align-items-end" onClick={handleGetStartedClick}>
+                        <Col md={6} className="d-flex justify-content-center align-items-center" onClick={handleGetStartedClick}>
                             <Lottie
                                 animationData={animationData}
                                 loop={true}
-                                style={{ maxWidth: "80%", height: "auto", padding: "2rem"}}
+                                style={{ maxWidth: "100%", height: "auto", padding: "1rem 5rem"}}
                             />
                         </Col>
                     </Row>

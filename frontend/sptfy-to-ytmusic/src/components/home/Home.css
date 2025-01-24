@@ -75,6 +75,17 @@
     color: white;
     text-align: center;
     padding: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.contact-info {
+    margin-top: 1rem;
+}
+
+.contact-info h5 {
+    margin-bottom: 0.5rem;
 }
 
 /* Media Queries for Responsiveness */
