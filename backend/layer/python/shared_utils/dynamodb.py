@@ -1,3 +1,5 @@
+import decimal
+
 import boto3
 import logging
 from botocore.exceptions import ClientError
@@ -10,15 +12,17 @@ logger = logging.getLogger(__name__)
 class DynamoDBService:
     """Service class for interacting with DynamoDB to manage user tokens."""
 
-    def __init__(self, table_name: str) -> None:
+    def __init__(self, users_table_name: str, transfer_table_name) -> None:
         """Initialize DynamoDB service with table name.
 
         Args:
-            table_name (str): Name of the DynamoDB table to use
+            users_table_name (str): Name of the DynamoDB table to use
         """
-        self.table_name: str = table_name
+        self.users_table_name: str = users_table_name
+        self.transfer_table_name: str = transfer_table_name
         self.dynamodb = boto3.resource('dynamodb')
-        self.table = self.dynamodb.Table(table_name)
+        self.users_table = self.dynamodb.Table(users_table_name)
+        self.transfer_table = self.dynamodb.Table(transfer_table_name)
 
     def get_tokens(self, user_id: str, service_prefix: str) -> Optional[Dict[str, Any]]:
         """Get tokens from DynamoDB for the specified service.
@@ -32,7 +36,7 @@ class DynamoDBService:
         """
         try:
             projection_expression = f"{service_prefix}_access_token, {service_prefix}_expires_at, {service_prefix}_refresh_token"
-            response = self.table.get_item(
+            response = self.users_table.get_item(
                 Key={'userid': user_id},
                 ProjectionExpression=projection_expression
             )
@@ -57,7 +61,7 @@ class DynamoDBService:
             Exception: If there is an error storing the tokens
         """
         try:
-            response = self.table.get_item(Key={'userid': user_id})
+            response = self.users_table.get_item(Key={'userid': user_id})
             if 'Item' not in response:
                 raise ValueError(f"User {user_id} does not exist")
 
@@ -70,7 +74,7 @@ class DynamoDBService:
                     {service_prefix}_token_updated = :updated_at
             """
 
-            self.table.update_item(
+            self.users_table.update_item(
                 Key={'userid': user_id},
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues={
@@ -116,7 +120,7 @@ class DynamoDBService:
                 update_expression += f", {service_prefix}_refresh_token = :refresh"
                 expression_values[':refresh'] = token_info['refresh_token']
 
-            self.table.update_item(
+            self.users_table.update_item(
                 Key={'userid': user_id},
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues=expression_values
@@ -125,3 +129,63 @@ class DynamoDBService:
         except ClientError as e:
             logger.error(f"Error updating DynamoDB: {e.response['Error']['Message']}")
             return False
+
+    def update_transfer_details(self, transfer_id: str, transfer_details: dict) -> None:
+        """
+        Update transfer details in DynamoDB.
+
+        Args:
+            transfer_id (str): Unique identifier for the transfer
+            transfer_details (dict): Complete transfer details to store
+        """
+        try:
+            # Convert any float/int to Decimal for DynamoDB
+            def to_decimal(obj):
+                if isinstance(obj, (float, int)):
+                    return decimal.Decimal(str(obj))
+                elif isinstance(obj, dict):
+                    return {k: to_decimal(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [to_decimal(x) for x in obj]
+                return obj
+
+            decimal_details = to_decimal(transfer_details)
+
+            self.transfer_table.put_item(
+                Item={
+                    'transfer_id': transfer_id,
+                    **decimal_details
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error updating transfer details: {e}")
+            raise
+
+    def get_transfer_details(self, transfer_id: str) -> dict:
+        """
+        Retrieve transfer details from DynamoDB.
+
+        Args:
+            transfer_id (str): Unique identifier for the transfer
+
+        Returns:
+            dict: Transfer details or empty dict if not found
+        """
+        try:
+            response = self.transfer_table.get_item(Key={'transfer_id': transfer_id})
+            item = response.get('Item', {})
+
+            # Convert Decimal types to float for JSON serialization
+            def decimal_to_float(obj):
+                if isinstance(obj, decimal.Decimal):
+                    return float(obj)
+                elif isinstance(obj, dict):
+                    return {k: decimal_to_float(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [decimal_to_float(x) for x in obj]
+                return obj
+
+            return decimal_to_float(item)
+        except Exception as e:
+            logger.error(f"Error retrieving transfer details: {e}")
+            return {}

@@ -16,7 +16,7 @@ config_ = YTMusicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
-db_service = DynamoDBService(config_.USERS_TABLE)
+db_service = DynamoDBService(config_.USERS_TABLE, config_.TRANSFER_TABLE)
 
 
 def _get_oauth():
@@ -221,6 +221,7 @@ def handle_login_ytmusic(event):
             })
         }
 
+
 def handle_poll_token_status(event):
     """Handle token polling for YouTube Music OAuth flow
 
@@ -304,58 +305,94 @@ def handle_spotify_sns_message(event, context):
     logger.info(event)
     for record in event['Records']:
         message = json.loads(record['Sns']['Message'])
+        transfer_id = message.get('transfer_id')
         user_id = message['user_id']
-        playlists = message['playlists']
+        playlists = message['playlists_data']
+
+        # Retrieve and update transfer details
+        transfer_details = db_service.get_transfer_details(transfer_id)
+        logger.info(transfer_details)
+        transfer_details['status'] = 'in_progress'
+        transfer_details['total_tracks'] = sum(len(playlist['tracks']) for playlist in playlists)
 
         current_time = int(datetime.now().timestamp())
         token_key = f'{config_.SERVICE_PREFIX}_access_token'
         expires_key = f'{config_.SERVICE_PREFIX}_expires_at'
         refresh_key = f'{config_.SERVICE_PREFIX}_refresh_token'
 
-        logger.info(f"Processing transfer request for user {user_id} with {len(playlists)} playlists")
+        try:
+            token_info = db_service.get_tokens(user_id, config_.SERVICE_PREFIX)
 
-        token_info = db_service.get_tokens(user_id, config_.SERVICE_PREFIX)
-        logger.info(f"token info: {token_info}")
+            # Check if the token is expired
+            if token_info[expires_key] <= current_time:
+                logger.info("Access token has expired, refreshing token...")
+                new_access_token = _refresh_ytmusic_token(user_id, token_info[refresh_key])
+                if not new_access_token:
+                    logger.error("Failed to refresh access token")
+                    transfer_details['status'] = 'failed'
+                    transfer_details['error_details'] = 'Token refresh failed'
+                    db_service.update_transfer_details(transfer_id, transfer_details)
+                    continue  # Skip processing if token refresh fails
 
-        # Check if the token is expired
-        if token_info[expires_key] <= current_time:
-            logger.info("Access token has expired, refreshing token...")
-            new_access_token = _refresh_ytmusic_token(user_id, token_info[refresh_key])
-            if not new_access_token:
-                logger.error("Failed to refresh access token")
-                continue  # Skip processing if token refresh fails
-            token_info[token_key] = new_access_token
-            token_info[expires_key] = current_time + 3600
+                token_info[token_key] = new_access_token
+                token_info[expires_key] = current_time + 3600
 
-        ytmusic_client = YTMusic(auth={
-            "scope": "https://www.googleapis.com/auth/youtube",
-            "token_type": "Bearer",
-            "access_token": token_info[token_key],
-            "refresh_token": token_info[refresh_key],
-            "expires_at": token_info[f'{expires_key}'],
-            "expires_in": 3600
-        })
+            ytmusic_client = YTMusic(auth={
+                "scope": "https://www.googleapis.com/auth/youtube",
+                "token_type": "Bearer",
+                "access_token": token_info[token_key],
+                "refresh_token": token_info[refresh_key],
+                "expires_at": token_info[f'{expires_key}'],
+                "expires_in": 3600
+            })
 
-        logger.info(f"ytmusic client: {ytmusic_client}")
+            for playlist in playlists:
+                playlist_name = playlist['playlist_name']
+                tracks = playlist['tracks']
 
-        for playlist in playlists:
-            playlist_name = playlist['playlist_name']
-            tracks = playlist['tracks']
+                playlist_transfer_info = {
+                    'spotify_playlist_id': playlist['playlist_id'],
+                    'playlist_name': playlist_name,
+                    'status': 'in_progress',
+                    'total_tracks': len(tracks),
+                    'completed_tracks': 0,
+                    'failed_tracks': 0
+                }
 
-            logger.info(f"Processing playlist '{playlist_name}' with {len(tracks)} tracks")
+                try:
+                    # Create the playlist in YouTube Music
+                    created_playlist_id = _create_ytmusic_playlist(ytmusic_client, playlist_name)
+                    logger.info(f"Created YouTube Music playlist '{playlist_name}' with ID: {created_playlist_id}")
 
-            try:
-                # Create the playlist in YouTube Music
-                created_playlist_id = _create_ytmusic_playlist(ytmusic_client, playlist_name)
-                logger.info(f"Created YouTube Music playlist '{playlist_name}' with ID: {created_playlist_id}")
+                    # Search for tracks and add them to the created playlist
+                    transfer_results = _search_and_add_tracks(ytmusic_client, created_playlist_id, tracks)
 
-                # Search for tracks and add them to the created playlist
-                transfer_results = _search_and_add_tracks(ytmusic_client, created_playlist_id, tracks)
+                    # Update playlist transfer status
+                    playlist_transfer_info['status'] = 'completed'
+                    playlist_transfer_info['completed_tracks'] = transfer_results['successful']
+                    playlist_transfer_info['failed_tracks'] = transfer_results['failed']
 
-                logger.info(f"Transfer results for playlist '{playlist_name}': {transfer_results}")
+                    # Update overall transfer details
+                    transfer_details['completed_tracks'] += transfer_results['successful']
+                    transfer_details['failed_tracks'] += transfer_results['failed']
+                    transfer_details['completed_playlists'] += 1
+                except Exception as e:
+                    logger.error(f"Error processing playlist '{playlist_name}': {str(e)}")
+                    playlist_transfer_info['status'] = 'failed'
+                    playlist_transfer_info['error_details'] = str(e)
+                    transfer_details['failed_playlists'] += 1
 
-            except Exception as e:
-                logger.error(f"Error processing playlist '{playlist_name}': {str(e)}")
+                transfer_details['playlists'].append(playlist_transfer_info)
+
+            transfer_details['status'] = 'completed'
+        except Exception as e:
+            logger.error(f"Error processing transfer for user {user_id}: {str(e)}")
+            transfer_details['status'] = 'failed'
+            transfer_details['error_details'] = str(e)
+
+        db_service.update_transfer_details(transfer_id, transfer_details)
+
+
 
 # -------------------------------------------------------------------------------------
 

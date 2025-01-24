@@ -21,6 +21,18 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
 
+  TransferDetailsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Env}-TransferDetailsTable"
+      AttributeDefinitions:
+        - AttributeName: transfer_id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: transfer_id
+          KeyType: HASH
+
 Outputs:
   UsersTableName:
     Description: Name of the DynamoDB Users table
@@ -29,3 +41,11 @@ Outputs:
   UsersTableArn:
     Description: ARN of the DynamoDB Users table
     Value: !GetAtt UsersTable.Arn
+
+  TransferDetailsTableName:
+    Description: Name of the DynamoDB Transfer Details table
+    Value: !Ref TransferDetailsTable
+
+  TransferDetailsTableArn:
+    Description: ARN of the DynamoDB Transfer Details table
+    Value: !GetAtt TransferDetailsTable.Arn

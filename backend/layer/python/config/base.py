@@ -7,4 +7,5 @@ class BaseConfig:
 
     def __init__(self):
         self.USERS_TABLE = os.getenv('USERS_TABLE', "dev-UsersTable")
-        self.ACCESS_CONTROL_ALLOW_ORIGIN = os.getenv('ACCESS_CONTROL_ALLOW_ORIGIN', 'https://master.d3tjriompcjyyz.amplifyapp.com')
+        self.TRANSFER_TABLE = os.getenv('TRANSFER_DETAILS_TABLE', "dev-TransferDetailsTable")
+        self.ACCESS_CONTROL_ALLOW_ORIGIN = os.getenv('ACCESS_CONTROL_ALLOW_ORIGIN', 'http://localhost:5173')

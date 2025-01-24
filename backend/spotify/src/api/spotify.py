@@ -1,4 +1,7 @@
 import json
+import uuid
+from datetime import datetime, timezone
+
 import spotipy
 import logging
 import boto3
@@ -14,7 +17,7 @@ config_ = SpotifyConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.INFO)
 
-db_service = DynamoDBService(config_.USERS_TABLE)
+db_service = DynamoDBService(config_.USERS_TABLE, config_.TRANSFER_TABLE)
 
 
 def _get_spotify_service():
@@ -203,15 +206,12 @@ def _get_playlist_tracks(spotify_client, playlist_id, access_token):
         raise
 
 
-def _publish_to_sns(playlist_data, user_id):
+def _publish_to_sns(sns_data):
     try:
         sns_client = boto3.client('sns')
         response = sns_client.publish(
             TopicArn=config_.PLAYLIST_TRANSFER_TOPIC,
-            Message=json.dumps({
-                'user_id': user_id,
-                'playlists': playlist_data,
-            })
+            Message=json.dumps(sns_data)
         )
         logger.info(f"Published to SNS: {response}")
 
@@ -466,6 +466,38 @@ def handle_transfer_to_ytmusic(event):
         user_id = body.get('userId',  None)
         playlist_ids = body.get('playlistIds', [])
 
+        # Generate unique transfer ID
+        transfer_id = str(uuid.uuid4())
+
+        # Create initial transfer record
+        transfer_details = {
+            'transfer_id': transfer_id,
+            'user_id': user_id,
+            'timestamp_started': int(datetime.now(timezone.utc).timestamp()),
+            'status': 'in_progress',
+            'total_playlists': len(playlist_ids),
+            'total_tracks': 0,
+            'completed_playlists': 0,
+            'completed_tracks': 0,
+            'failed_playlists': 0,
+            'failed_tracks': 0,
+            'playlists': [],
+            'error_details': None
+        }
+
+        try:
+            db_service.update_transfer_details(transfer_id, transfer_details)
+            logger.info(f"Initial transfer record created for transfer ID {transfer_id}")
+        except Exception as e:
+            logger.error(f"Failed to create initial transfer record for transfer ID {transfer_id}: {str(e)}")
+            return {
+                'statusCode': 500,
+                'body': json.dumps({
+                    'message': 'Failed to initiate transfer process'
+                })
+            }
+
+
         logger.info(f"Starting playlist transfer for user {user_id}, playlists: {playlist_ids}")
 
         if not user_id or not playlist_ids:
@@ -503,8 +535,12 @@ def handle_transfer_to_ytmusic(event):
 
         # Publish to SNS for async processing with all playlists' data
         if all_playlists_data:
-            logger.info(f"Publishing transfer request to SNS for user {user_id}")
-            sns_published = _publish_to_sns(all_playlists_data, user_id)
+            sns_data = {
+                'transfer_id': transfer_id,
+                'playlists_data': all_playlists_data,
+                'user_id': user_id
+            }
+            sns_published = _publish_to_sns(sns_data)
             if not sns_published:
                 logger.info(f"Failed to publish SNS message for user {user_id}")
                 return {
@@ -517,7 +553,7 @@ def handle_transfer_to_ytmusic(event):
             'statusCode': 200,
             'body' : json.dumps({
                 'message': 'Transfer initiated successfully',
-                'playlists': all_playlists_data
+                'transfer_id': transfer_id
             })
         }
     except Exception as e:
@@ -530,6 +566,18 @@ def handle_transfer_to_ytmusic(event):
             })
         }
 
+def handle_transfer_status(event):
+    body = json.loads(event.get('body', '{}'))
+    transfer_id = body.get('transfer_id')
+    user_id = body.get('user_id')
+
+    transfer_details = db_service.get_transfer_details(transfer_id)
+    return {
+        'statusCode': 200,
+        'body': json.dumps(transfer_details)
+    }
+
+
 # -------------------------------------------------------------------------------------
 
 # Map routes to functions
@@ -539,6 +587,7 @@ operations = {
     'POST /spotify/callback': lambda event: handle_spotify_callback(event),
     'GET /spotify/playlists/{userId}': lambda event: handle_get_user_playlists(event),
     'POST /transfer/sptfy-to-ytmusic': lambda event: handle_transfer_to_ytmusic(event),
+    'POST /transfer/status' : lambda event: handle_transfer_status(event)
 }
 
 def lambda_handler(event, context):

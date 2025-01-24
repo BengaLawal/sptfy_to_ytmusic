@@ -137,6 +137,7 @@ def lambda_handler(event, context):
     policy.allow_method(HttpVerb.POST, f"/ytmusic/poll-token")
 
     policy.allow_method(HttpVerb.POST, f"/transfer/sptfy-to-ytmusic")
+    policy.allow_method(HttpVerb.POST, f"/transfer/status")
 
     # Look for admin group in Cognito groups
     # Assumption: admin group always has higher precedence
@@ -159,6 +160,7 @@ def lambda_handler(event, context):
         policy.allow_method(HttpVerb.POST, f"ytmusic/poll-token")
 
         policy.allow_method(HttpVerb.POST, "transfer/sptfy-to-ytmusic")
+        policy.allow_method(HttpVerb.POST, "transfer/status")
 
 
     # Finally, build the policy

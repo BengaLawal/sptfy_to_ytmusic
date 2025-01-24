@@ -33,6 +33,12 @@ Parameters:
   UsersTableArn:
     Type: String
     Description: The DynamoDB table ARN for users
+  TransferDetailsTable:
+    Type: String
+    Description: The DynamoDB table name for transfer details
+  TransferDetailsTableArn:
+    Type: String
+    Description: The DynamoDB table ARN for transfer details
 
 
 Resources:
@@ -149,11 +155,16 @@ Resources:
         Variables:
           USERS_TABLE: !Ref UsersTable
           USERS_TABLE_ARN: !Ref UsersTableArn
+          TRANSFER_DETAILS_TABLE: !Ref TransferDetailsTable
+          TRANSFER_DETAILS_TABLE_ARN: !Ref TransferDetailsTableArn
           REGION: !Ref AWS::Region
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TransferDetailsTable
+
       Tags:
         Stack: !Sub ${AWS::StackName}
       Events:
@@ -211,11 +222,14 @@ Resources:
       Environment:
         Variables:
           USERS_TABLE: !Ref UsersTable
+          TRANSFER_DETAILS_TABLE: !Ref TransferDetailsTable
           PLAYLIST_TRANSFER_TOPIC: !Ref SpotifyToYtMusicTopic
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TransferDetailsTable
         - Statement:
             - Effect: Allow
               Action:
@@ -294,8 +308,20 @@ Resources:
             RestApiId: !Ref SpotifyToYtMusicApi
             Auth:
               Authorizer: NONE
-
-
+        TransferStatus:
+          Type: Api
+          Properties:
+            Path: /transfer/status
+            Method: post
+            RestApiId: !Ref SpotifyToYtMusicApi
+        OptionsTransferStatus:
+          Type: Api
+          Properties:
+            Path: /transfer/status
+            Method: options
+            RestApiId: !Ref SpotifyToYtMusicApi
+            Auth:
+              Authorizer: NONE
 
   YtMusicFunction:
     Type: AWS::Serverless::Function
@@ -307,10 +333,13 @@ Resources:
       Environment:
         Variables:
           USERS_TABLE: !Ref UsersTable
+          TRANSFER_DETAILS_TABLE: !Ref TransferDetailsTable
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TransferDetailsTable
         - Statement:
             - Effect: Allow
               Action:
@@ -370,11 +399,14 @@ Resources:
       Environment:
         Variables:
           USERS_TABLE: !Ref UsersTable
+          TRANSFER_DETAILS_TABLE: !Ref TransferDetailsTable
           PLAYLIST_TRANSFER_TOPIC: !Ref SpotifyToYtMusicTopic
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TransferDetailsTable
         - Statement:
             - Effect: Allow
               Action:

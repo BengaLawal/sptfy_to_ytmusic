@@ -58,6 +58,8 @@ Resources:
         UserPoolAdminGroupName: !GetAtt AuthStack.Outputs.UserPoolAdminGroupName
         UsersTable: !GetAtt DBStack.Outputs.UsersTableName
         UsersTableArn: !GetAtt  DBStack.Outputs.UsersTableArn
+        TransferDetailsTable: !GetAtt DBStack.Outputs.TransferDetailsTableName
+        TransferDetailsTableArn: !GetAtt  DBStack.Outputs.TransferDetailsTableArn
 
 Outputs:
   AuthStackRef:

@@ -7,8 +7,7 @@ class SpotifyConfig(BaseConfig):
     SERVICE_PREFIX = "spotify"
     SECRET_NAME = "Spotify"
     SCOPE = (
-        "user-read-email, user-read-private, playlist-read-private, "
-        "playlist-read-collaborative, user-library-read"
+        "playlist-read-private, playlist-read-collaborative, user-library-read"
     )
 
     def __init__(self):
