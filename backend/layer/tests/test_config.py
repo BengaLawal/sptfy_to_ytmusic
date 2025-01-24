@@ -69,8 +69,7 @@ class TestSpotifyConfig(unittest.TestCase):
         self.assertEqual(config.SECRET_NAME, "Spotify")
         self.assertEqual(
             config.SCOPE,
-            "user-read-email, user-read-private, playlist-read-private, "
-            "playlist-read-collaborative, user-library-read"
+            "playlist-read-private, playlist-read-collaborative, user-library-read"
         )
         self.assertTrue(
             config.REDIRECT_URI in [

@@ -269,7 +269,7 @@ class TestSpotifyHelpers(unittest.TestCase):
         mock_sns.publish.return_value = {'MessageId': '12345'}
 
         with patch('backend.spotify.src.api.spotify.boto3.client', return_value=mock_sns):
-            result = _publish_to_sns([{'playlist_id': '1', 'tracks': []}], self.user_id)
+            result = _publish_to_sns([{'playlist_id': '1', 'tracks': []}])
 
             self.assertTrue(result)
             mock_sns.publish.assert_called_once()
@@ -281,7 +281,7 @@ class TestSpotifyHelpers(unittest.TestCase):
 
         with patch('backend.spotify.src.api.spotify.boto3.client', return_value=mock_sns), \
                 patch('backend.spotify.src.api.spotify.logger', self.logger):
-            result = _publish_to_sns([{'playlist_id': '1', 'tracks': []}], self.user_id)
+            result = _publish_to_sns([{'playlist_id': '1', 'tracks': []}])
 
             self.assertFalse(result)
             self.logger.error.assert_called_with("Error publishing to SNS: SNS Publish Error")
