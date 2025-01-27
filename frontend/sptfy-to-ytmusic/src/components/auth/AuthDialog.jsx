@@ -359,7 +359,7 @@ const AuthDialog = ({ isOpen, onClose }) => {
                 >
                     ×
                 </button>
-                <h1>Welcome to Self Storage</h1>
+                <h1>Welcome to PlayShift</h1>
                 {formState.error && (
                     <div
                         role="alert"
