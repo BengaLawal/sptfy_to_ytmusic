@@ -43,21 +43,41 @@ const PlatformSelection = ({
     const [loading, setLoading] = useState({});
     const [spotifyConnected, setSpotifyConnected] = useState(false);
     const [youtubeConnected, setYoutubeConnected] = useState(false);
+    const [error, setError] = useState({});
+
 
     // Handle platform selection and authentication
     const handlePlatformSelect = async (platform) => {
+        setError(prev => ({ ...prev, [platform.id]: null }));
+
+
         if (platform.id === 'spotify') {
             setLoading(prev => ({ ...prev, spotify: true }));
             try {
                 await handleSpotifyAuthentication(setSpotifyConnected);
                 if (selectionContext === "source"){
-                    const playlists = await fetchSpotifyPlaylists();
-                    console.log('Fetched playlists:', playlists)
-                    onPlaylistsFetched(playlists);
+                    try {
+                        const playlists = await fetchSpotifyPlaylists();
+                        console.log('Fetched playlists:', playlists);
+                        onPlaylistsFetched(playlists);
+                    } catch (playlistError) {
+                        if (playlistError.message.includes('403')) {
+                            setError(prev => ({
+                                ...prev,
+                                spotify: 'You are not registered on the creators Spotify Developer Dashboard. You can contact him to add you at gbengalawal99@gmail.com. Apologies for the inconvenience'
+                            }));
+                            return; // Prevent proceeding with platform selection
+                        }
+                        throw playlistError;
+                    }
                 }
                 onPlatformSelect(platform);
             } catch (error) {
                 console.error('Spotify platform selection error', error);
+                setError(prev => ({
+                    ...prev,
+                    spotify: 'Failed to connect to Spotify. Please try again.'
+                }));
             } finally {
                 setLoading(prev => ({ ...prev, spotify: false }));
             }
@@ -130,6 +150,12 @@ const PlatformSelection = ({
                                     {/* Show connection status for YouTube Music */}
                                     {platform.id === 'ytmusic' && youtubeConnected && (
                                         <div className="login-status">Connected</div>
+                                    )}
+
+                                    {error[platform.id] && (
+                                        <div className="error-message">
+                                            {error[platform.id]}
+                                        </div>
                                     )}
                                 </>
                             )}
