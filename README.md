@@ -3,18 +3,6 @@
 ## Overview
 The Playlist Transfer Application is a web-based tool that allows users to transfer playlists between Spotify and YouTube Music. This application leverages AWS services for authentication, data storage, and serverless functions, providing a seamless user experience.
 
----
-🚧
-I am now working on the transfer logic and a new UI.
-
-
-This is how the website looks as of now. 
-Note: You won't be able to see your spotify playlists if you visit the website just yet because my spotify developer account is in dev mode. 
-I can however add you manually to my list of users while spotify processes my extension request.
-Feel free to contact me at gbengalawal99@gmail.com
-
-![current_UI](current_UI.png)
-
 ----
 ## Prerequisites
 Before you begin, ensure you have the following:
